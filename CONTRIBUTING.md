@@ -2,10 +2,10 @@
 
 ## Branch model
 
-| Branch | Purpose | Merges in from |
-|---|---|---|
-| `production` | Live code | `staging` (release PR), `hotfix/*` |
-| `staging` | Release candidate | `development` (release PR) |
+| Branch        | Purpose                    | Merges in from                                      |
+| ------------- | -------------------------- | --------------------------------------------------- |
+| `production`  | Live code                  | `staging` (release PR), `hotfix/*`                  |
+| `staging`     | Release candidate          | `development` (release PR)                          |
 | `development` | Default integration branch | `feature/*`, `fix/*`, `chore/*`, `docs/*`, `test/*` |
 
 Never push directly to `production`, `staging` or `development`.
@@ -27,9 +27,11 @@ Example: `feature/23-login-sessions`
 
 Use Conventional Commits: `type(scope): summary`
 
-Types: feat, fix, chore, docs, test, refactor, perf, ci, build
+Types: feat, fix, chore, docs, test, refactor, perf, ci, build, style, revert
 
 Examples: `feat(auth): add opaque session tokens` and `fix(attendance): keep correction history`
+
+A commit-msg hook (commitlint) rejects commits that don't follow this format.
 
 ## Pull requests
 

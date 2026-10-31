@@ -33,15 +33,15 @@ flowchart LR
 
 ## 2. Components
 
-| Component | Technology | Responsibility |
-|-----------|------------|----------------|
-| Web | Next.js (App Router) + TypeScript | All screens for the 6 roles; Arabic (RTL), English and French |
-| API | Express + TypeScript | Business rules, permissions, tenant isolation, audit log |
-| Worker | Same codebase as the API, started in worker mode; jobs stored in PostgreSQL (pg-boss) | Exports, report generation, emails |
-| Database | PostgreSQL + Prisma | All application data; one shared schema with `school_id` |
-| Object storage | S3-compatible: MinIO locally, DigitalOcean Spaces in production | Uploaded files (materials, submissions, logos), always private |
-| Email | Mailpit locally; a transactional email provider in production (to be chosen) | Invitations, email verification, password reset, notifications |
-| Reverse proxy | Caddy | HTTPS, serves the web app at `/` and the API at `/api` on the same domain |
+| Component      | Technology                                                                            | Responsibility                                                            |
+| -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Web            | Next.js (App Router) + TypeScript                                                     | All screens for the 6 roles; Arabic (RTL), English and French             |
+| API            | Express + TypeScript                                                                  | Business rules, permissions, tenant isolation, audit log                  |
+| Worker         | Same codebase as the API, started in worker mode; jobs stored in PostgreSQL (pg-boss) | Exports, report generation, emails                                        |
+| Database       | PostgreSQL + Prisma                                                                   | All application data; one shared schema with `school_id`                  |
+| Object storage | S3-compatible: MinIO locally, DigitalOcean Spaces in production                       | Uploaded files (materials, submissions, logos), always private            |
+| Email          | Mailpit locally; a transactional email provider in production (to be chosen)          | Invitations, email verification, password reset, notifications            |
+| Reverse proxy  | Caddy                                                                                 | HTTPS, serves the web app at `/` and the API at `/api` on the same domain |
 
 Web and API share one domain, so the session cookie is first-party and the browser never makes cross-origin calls.
 
@@ -82,25 +82,25 @@ school-management-system/
 
 Each module owns its routes, validation, services and data access. A module may call another module's **service**, never its repository or tables directly.
 
-| Module | Covers | SRS |
-|--------|--------|-----|
-| `auth` | Sign-in, sign-out, sessions, password reset, email verification | FR-01 |
-| `access` | Roles, permissions, policy checks | FR-02 |
-| `platform` | School tenants (platform operator) | FR-03 |
-| `schools` | School settings, staff memberships | FR-04 |
-| `academics` | Years, terms, grade levels, classes, subjects, teacher assignments | FR-05 |
-| `people` | Student, teacher and guardian profiles, invitations | FR-06, FR-12 |
-| `enrollment` | Enrollment and transfers | FR-06 |
-| `materials` | Learning materials | FR-07 |
-| `assignments` | Assignments, submissions, feedback | FR-08 |
-| `attendance` | Attendance and correction history | FR-09 |
-| `grading` | Scales, assessments, grade entry, publishing | FR-10 |
-| `timetable` | Weekly timetable and overlap rules | FR-11 |
-| `communication` | Announcements, notifications | FR-12 |
-| `finance` | Fees, invoices, payments, allocation, reversals | FR-13 |
-| `reports` | Reports and exports | FR-14 |
-| `files` | Upload, private storage, signed download links | FR-07, FR-08 |
-| `audit` | Audit log of sensitive actions | NFR-02 |
+| Module          | Covers                                                             | SRS          |
+| --------------- | ------------------------------------------------------------------ | ------------ |
+| `auth`          | Sign-in, sign-out, sessions, password reset, email verification    | FR-01        |
+| `access`        | Roles, permissions, policy checks                                  | FR-02        |
+| `platform`      | School tenants (platform operator)                                 | FR-03        |
+| `schools`       | School settings, staff memberships                                 | FR-04        |
+| `academics`     | Years, terms, grade levels, classes, subjects, teacher assignments | FR-05        |
+| `people`        | Student, teacher and guardian profiles, invitations                | FR-06, FR-12 |
+| `enrollment`    | Enrollment and transfers                                           | FR-06        |
+| `materials`     | Learning materials                                                 | FR-07        |
+| `assignments`   | Assignments, submissions, feedback                                 | FR-08        |
+| `attendance`    | Attendance and correction history                                  | FR-09        |
+| `grading`       | Scales, assessments, grade entry, publishing                       | FR-10        |
+| `timetable`     | Weekly timetable and overlap rules                                 | FR-11        |
+| `communication` | Announcements, notifications                                       | FR-12        |
+| `finance`       | Fees, invoices, payments, allocation, reversals                    | FR-13        |
+| `reports`       | Reports and exports                                                | FR-14        |
+| `files`         | Upload, private storage, signed download links                     | FR-07, FR-08 |
+| `audit`         | Audit log of sensitive actions                                     | NFR-02       |
 
 Inside a module:
 
@@ -164,11 +164,11 @@ Details: [ADR 0004](./adr/0004-private-file-storage.md).
 
 ## 6. Environments
 
-| Environment | Where | Purpose |
-|-------------|-------|---------|
-| Local | Developer machine, Docker Compose (PostgreSQL, MinIO, Mailpit) | All development until the pilot school approves |
-| Staging | DigitalOcean (after approval) | Test each release before production |
-| Production | DigitalOcean droplet + Managed PostgreSQL + Spaces (after approval) | The pilot school |
+| Environment | Where                                                               | Purpose                                         |
+| ----------- | ------------------------------------------------------------------- | ----------------------------------------------- |
+| Local       | Developer machine, Docker Compose (PostgreSQL, MinIO, Mailpit)      | All development until the pilot school approves |
+| Staging     | DigitalOcean (after approval)                                       | Test each release before production             |
+| Production  | DigitalOcean droplet + Managed PostgreSQL + Spaces (after approval) | The pilot school                                |
 
 Branches map to environments: `development` → local, `staging` → staging, `production` → production. Details: [ADR 0005](./adr/0005-hosting-and-deployment.md).
 
@@ -176,10 +176,10 @@ Branches map to environments: `development` → local, `staging` → staging, `p
 
 ## 7. Decision records
 
-| ADR | Decision | Status |
-|-----|----------|--------|
-| [0001](./adr/0001-modular-monolith.md) | Modular monolith | Accepted |
-| [0002](./adr/0002-multi-tenancy-model.md) | Shared database, `school_id` on every tenant table | Accepted |
-| [0003](./adr/0003-authentication-and-sessions.md) | Server-side sessions in httpOnly cookies | Accepted |
-| [0004](./adr/0004-private-file-storage.md) | Private S3-compatible storage with signed links | Accepted |
-| [0005](./adr/0005-hosting-and-deployment.md) | Local until approval, then DigitalOcean + Managed PostgreSQL | Accepted |
+| ADR                                               | Decision                                                     | Status   |
+| ------------------------------------------------- | ------------------------------------------------------------ | -------- |
+| [0001](./adr/0001-modular-monolith.md)            | Modular monolith                                             | Accepted |
+| [0002](./adr/0002-multi-tenancy-model.md)         | Shared database, `school_id` on every tenant table           | Accepted |
+| [0003](./adr/0003-authentication-and-sessions.md) | Server-side sessions in httpOnly cookies                     | Accepted |
+| [0004](./adr/0004-private-file-storage.md)        | Private S3-compatible storage with signed links              | Accepted |
+| [0005](./adr/0005-hosting-and-deployment.md)      | Local until approval, then DigitalOcean + Managed PostgreSQL | Accepted |

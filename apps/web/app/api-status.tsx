@@ -3,10 +3,7 @@
 import { HealthResponseSchema, type HealthResponse } from "@sms/contracts";
 import { useEffect, useState } from "react";
 
-type State =
-  | { kind: "loading" }
-  | { kind: "ok"; health: HealthResponse }
-  | { kind: "error" };
+type State = { kind: "loading" } | { kind: "ok"; health: HealthResponse } | { kind: "error" };
 
 /** Calls the API through the /api rewrite and shows whether it answered. */
 export function ApiStatus() {
@@ -20,7 +17,8 @@ export function ApiStatus() {
   }, []);
 
   if (state.kind === "loading") return <p>Checking the API…</p>;
-  if (state.kind === "error") return <p className="status-error">API is not reachable on /api/health.</p>;
+  if (state.kind === "error")
+    return <p className="status-error">API is not reachable on /api/health.</p>;
   return (
     <p className="status-ok">
       API is up ({state.health.service}, {new Date(state.health.time).toLocaleTimeString()}).
