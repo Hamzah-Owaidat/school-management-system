@@ -37,28 +37,28 @@ gantt
 
 ## 2. Milestones
 
-| Milestone | Due | Release | Issues | Done when |
-|-----------|-----|---------|--------|-----------|
-| M0 Requirements and architecture | 5 Nov 2026 | — | #1–#4 | SRS, architecture, ADRs, database design, permissions and decisions merged |
-| M1 Repository and infrastructure | 16 Nov 2026 | v0.1.0 | #5–#11 | Monorepo runs locally with one command; CI green on every PR |
-| M2 Authentication and tenancy | 27 Nov 2026 | v0.2.0 | #12–#20 | Sign-in, sessions, roles and tenant isolation work; cross-tenant tests pass |
-| M3 School and academic admin | 10 Dec 2026 | v0.3.0 | #21–#29 | An admin sets up a full school year, staff, students and enrollment |
-| M4 Teaching core | 31 Dec 2026 | v0.4.0 | #30–#43 | Teachers run materials, assignments, attendance, grades and timetable |
-| M5 Student and parent portals | 12 Jan 2027 | v0.5.0 | #44–#50 | Students and parents see their own data only; announcements work |
-| M6 Finance and reporting | 27 Jan 2027 | v0.6.0 | #51–#61 + report cards | Fees, invoices, payments, reports, exports and report cards work |
-| M7 Localization and launch | 8 Feb 2027 | v1.0.0 | #62–#69 | Arabic, English and French complete; security, accessibility and load checks pass; pilot school onboarded |
+| Milestone                        | Due         | Release | Issues                 | Done when                                                                                                 |
+| -------------------------------- | ----------- | ------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| M0 Requirements and architecture | 5 Nov 2026  | —       | #1–#4                  | SRS, architecture, ADRs, database design, permissions and decisions merged                                |
+| M1 Repository and infrastructure | 16 Nov 2026 | v0.1.0  | #5–#11                 | Monorepo runs locally with one command; CI green on every PR                                              |
+| M2 Authentication and tenancy    | 27 Nov 2026 | v0.2.0  | #12–#20                | Sign-in, sessions, roles and tenant isolation work; cross-tenant tests pass                               |
+| M3 School and academic admin     | 10 Dec 2026 | v0.3.0  | #21–#29                | An admin sets up a full school year, staff, students and enrollment                                       |
+| M4 Teaching core                 | 31 Dec 2026 | v0.4.0  | #30–#43                | Teachers run materials, assignments, attendance, grades and timetable                                     |
+| M5 Student and parent portals    | 12 Jan 2027 | v0.5.0  | #44–#50                | Students and parents see their own data only; announcements work                                          |
+| M6 Finance and reporting         | 27 Jan 2027 | v0.6.0  | #51–#61 + report cards | Fees, invoices, payments, reports, exports and report cards work                                          |
+| M7 Localization and launch       | 8 Feb 2027  | v1.0.0  | #62–#69                | Arabic, English and French complete; security, accessibility and load checks pass; pilot school onboarded |
 
 ---
 
 ## 3. Changes from the M0 decisions
 
-| Change | Why | Where |
-|--------|-----|-------|
-| Add an issue "Build report card generation" | Report cards are in v1 | D-06 · M6, after #60 |
-| Do #41 (timetable API) **before** #36 (attendance API) | Attendance is taken per period, so periods must exist first | D-05 · M4 |
-| Choose the email provider before #14 | Password reset and verification send email | D-10 · M2 |
-| Run #10 and #11 as local production builds | No servers until the pilot school approves | D-16 · M1 |
-| Build multi-currency and the grading scale type into the first schemas | USD and LBP; each school picks its scale | D-02, D-04 · #12, #38, #51 |
+| Change                                                                 | Why                                                         | Where                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------- |
+| Add an issue "Build report card generation"                            | Report cards are in v1                                      | D-06 · M6, after #60       |
+| Do #41 (timetable API) **before** #36 (attendance API)                 | Attendance is taken per period, so periods must exist first | D-05 · M4                  |
+| Choose the email provider before #14                                   | Password reset and verification send email                  | D-10 · M2                  |
+| Run #10 and #11 as local production builds                             | No servers until the pilot school approves                  | D-16 · M1                  |
+| Build multi-currency and the grading scale type into the first schemas | USD and LBP; each school picks its scale                    | D-02, D-04 · #12, #38, #51 |
 
 ---
 
@@ -87,15 +87,15 @@ An issue can be started when every box is true:
 
 ### Check for M1
 
-| Issue | Depends on | Ready |
-|-------|------------|-------|
-| #5 Scaffold the monorepo | M0 (repository layout in the architecture document) | Yes |
-| #6 Add code quality tooling | #5 | Yes, after #5 |
-| #7 Set up the local environment and database | #5; ADR 0005 (PostgreSQL, MinIO, Mailpit) | Yes, after #5 |
-| #8 Build the API foundation | #5, #7 | Yes, after #7 |
-| #9 Create the CI pipeline | #6 | Yes, after #6 |
-| #10 Set up staging and production environments | D-16: local production build only | Yes, with the narrowed scope |
-| #11 Release v0.1.0 to staging | #5–#10 | Yes, after #10 |
+| Issue                                          | Depends on                                          | Ready                        |
+| ---------------------------------------------- | --------------------------------------------------- | ---------------------------- |
+| #5 Scaffold the monorepo                       | M0 (repository layout in the architecture document) | Yes                          |
+| #6 Add code quality tooling                    | #5                                                  | Yes, after #5                |
+| #7 Set up the local environment and database   | #5; ADR 0005 (PostgreSQL, MinIO, Mailpit)           | Yes, after #5                |
+| #8 Build the API foundation                    | #5, #7                                              | Yes, after #7                |
+| #9 Create the CI pipeline                      | #6                                                  | Yes, after #6                |
+| #10 Set up staging and production environments | D-16: local production build only                   | Yes, with the narrowed scope |
+| #11 Release v0.1.0 to staging                  | #5–#10                                              | Yes, after #10               |
 
 Issues #6 to #11 need an assignee on the board.
 

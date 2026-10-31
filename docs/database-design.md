@@ -34,54 +34,54 @@ Every entity has exactly one tenant rule:
 
 The last column says how rows are removed (section 8).
 
-| Area | Entity | Tenant rule | Removal |
-|------|--------|-------------|---------|
-| Identity | `User` | Global | Suspended, never deleted while memberships exist |
-| Identity | `Session` | Global | Hard delete (expiry job) |
-| Identity | `AuthToken` | Global | Hard delete (expiry job) |
-| Identity | `School` | Root | Suspended; offboarding by script |
-| Identity | `Membership` | Scoped | Suspended, never deleted |
-| Identity | `Invitation` | Scoped | Hard delete (expiry job) |
-| People | `Teacher` | Scoped | Soft delete |
-| People | `Student` | Scoped | Soft delete, then anonymize on request |
-| People | `Guardian` | Scoped | Soft delete |
-| People | `StudentGuardian` | Scoped | Hard delete (link only) |
-| Academics | `AcademicYear` | Scoped | Archive |
-| Academics | `Term` | Scoped | Never deleted once used |
-| Academics | `GradeLevel` | Scoped | Archive |
-| Academics | `Subject` | Scoped | Archive |
-| Academics | `SchoolClass` | Scoped | Archive |
-| Academics | `ClassSubject` | Scoped | Hard delete only if unused |
-| Academics | `Enrollment` | Scoped | Never deleted; status changes |
-| Timetable | `Period` | Scoped | Hard delete only if unused |
-| Timetable | `TimetableEntry` | Scoped | Hard delete |
-| Files | `File` | Scoped | Soft delete, then object purged |
-| Teaching | `Material` | Scoped | Soft delete |
-| Teaching | `Assignment` | Scoped | Soft delete |
-| Teaching | `AssignmentFile` | Scoped | Hard delete (link only) |
-| Teaching | `Submission` | Scoped | Never deleted |
-| Teaching | `SubmissionFile` | Scoped | Hard delete (link only) |
-| Attendance | `AttendanceRecord` | Scoped | Never deleted; corrected with history |
-| Attendance | `AttendanceChange` | Scoped | Append-only |
-| Grading | `GradingScale` | Scoped | Archive |
-| Grading | `GradingScaleBand` | Scoped | Hard delete with its scale |
-| Grading | `Assessment` | Scoped | Hard delete only while it has no grades |
-| Grading | `Grade` | Scoped | Never deleted; corrected with history |
-| Grading | `GradeChange` | Scoped | Append-only |
-| Grading | `ReportCard` | Scoped | Never deleted; regenerated as a new version |
-| Communication | `Announcement` | Scoped | Soft delete |
-| Communication | `Notification` | Scoped | Hard delete (retention job) |
-| Finance | `FeeStructure` | Scoped | Archive |
-| Finance | `FeeStructureItem` | Scoped | Hard delete only if never invoiced |
-| Finance | `Invoice` | Scoped | Drafts deleted; issued ones voided, never deleted |
-| Finance | `InvoiceLine` | Scoped | Deleted only with a draft invoice |
-| Finance | `Adjustment` | Scoped | Append-only |
-| Finance | `Payment` | Scoped | Append-only; reversed, never deleted |
-| Finance | `PaymentAllocation` | Scoped | Append-only; reversed, never deleted |
-| Finance | `ReconciliationBatch` | Scoped | Never deleted once closed |
-| Finance | `DocumentSequence` | Scoped | Never deleted |
-| System | `ExportJob` | Scoped | Hard delete (retention job) |
-| System | `AuditLog` | Scoped or platform | Append-only; retention job |
+| Area          | Entity                | Tenant rule        | Removal                                           |
+| ------------- | --------------------- | ------------------ | ------------------------------------------------- |
+| Identity      | `User`                | Global             | Suspended, never deleted while memberships exist  |
+| Identity      | `Session`             | Global             | Hard delete (expiry job)                          |
+| Identity      | `AuthToken`           | Global             | Hard delete (expiry job)                          |
+| Identity      | `School`              | Root               | Suspended; offboarding by script                  |
+| Identity      | `Membership`          | Scoped             | Suspended, never deleted                          |
+| Identity      | `Invitation`          | Scoped             | Hard delete (expiry job)                          |
+| People        | `Teacher`             | Scoped             | Soft delete                                       |
+| People        | `Student`             | Scoped             | Soft delete, then anonymize on request            |
+| People        | `Guardian`            | Scoped             | Soft delete                                       |
+| People        | `StudentGuardian`     | Scoped             | Hard delete (link only)                           |
+| Academics     | `AcademicYear`        | Scoped             | Archive                                           |
+| Academics     | `Term`                | Scoped             | Never deleted once used                           |
+| Academics     | `GradeLevel`          | Scoped             | Archive                                           |
+| Academics     | `Subject`             | Scoped             | Archive                                           |
+| Academics     | `SchoolClass`         | Scoped             | Archive                                           |
+| Academics     | `ClassSubject`        | Scoped             | Hard delete only if unused                        |
+| Academics     | `Enrollment`          | Scoped             | Never deleted; status changes                     |
+| Timetable     | `Period`              | Scoped             | Hard delete only if unused                        |
+| Timetable     | `TimetableEntry`      | Scoped             | Hard delete                                       |
+| Files         | `File`                | Scoped             | Soft delete, then object purged                   |
+| Teaching      | `Material`            | Scoped             | Soft delete                                       |
+| Teaching      | `Assignment`          | Scoped             | Soft delete                                       |
+| Teaching      | `AssignmentFile`      | Scoped             | Hard delete (link only)                           |
+| Teaching      | `Submission`          | Scoped             | Never deleted                                     |
+| Teaching      | `SubmissionFile`      | Scoped             | Hard delete (link only)                           |
+| Attendance    | `AttendanceRecord`    | Scoped             | Never deleted; corrected with history             |
+| Attendance    | `AttendanceChange`    | Scoped             | Append-only                                       |
+| Grading       | `GradingScale`        | Scoped             | Archive                                           |
+| Grading       | `GradingScaleBand`    | Scoped             | Hard delete with its scale                        |
+| Grading       | `Assessment`          | Scoped             | Hard delete only while it has no grades           |
+| Grading       | `Grade`               | Scoped             | Never deleted; corrected with history             |
+| Grading       | `GradeChange`         | Scoped             | Append-only                                       |
+| Grading       | `ReportCard`          | Scoped             | Never deleted; regenerated as a new version       |
+| Communication | `Announcement`        | Scoped             | Soft delete                                       |
+| Communication | `Notification`        | Scoped             | Hard delete (retention job)                       |
+| Finance       | `FeeStructure`        | Scoped             | Archive                                           |
+| Finance       | `FeeStructureItem`    | Scoped             | Hard delete only if never invoiced                |
+| Finance       | `Invoice`             | Scoped             | Drafts deleted; issued ones voided, never deleted |
+| Finance       | `InvoiceLine`         | Scoped             | Deleted only with a draft invoice                 |
+| Finance       | `Adjustment`          | Scoped             | Append-only                                       |
+| Finance       | `Payment`             | Scoped             | Append-only; reversed, never deleted              |
+| Finance       | `PaymentAllocation`   | Scoped             | Append-only; reversed, never deleted              |
+| Finance       | `ReconciliationBatch` | Scoped             | Never deleted once closed                         |
+| Finance       | `DocumentSequence`    | Scoped             | Never deleted                                     |
+| System        | `ExportJob`           | Scoped             | Hard delete (retention job)                       |
+| System        | `AuditLog`            | Scoped or platform | Append-only; retention job                        |
 
 Background jobs live in the `pgboss` schema, which pg-boss manages outside Prisma. Every job payload carries `schoolId`, and the worker uses the tenant-scoped client.
 
@@ -331,91 +331,91 @@ Optional relations handled this way: `SchoolClass.homeroomTeacherId`, `Teacher/S
 
 Every Scoped table's `schoolId → School`: **Restrict** (schools are suspended, never deleted by a cascade).
 
-| Child → Parent | Required | On delete | Why |
-|----------------|----------|-----------|-----|
-| `Session.userId → User` | Yes | Cascade | Sessions mean nothing without the user |
-| `Session.activeMembershipId → Membership` | No | Set null | Global table, single-column key |
-| `AuthToken.userId → User` | Yes | Cascade | Tokens mean nothing without the user |
-| `School.logoFileId → File` | No | Set null | Root table, single-column key |
-| `Membership.userId → User` | Yes | Restrict | Users with memberships are suspended, not deleted |
-| `Invitation.invitedByMembershipId → Membership` | Yes | Restrict | Keeps who invited whom |
-| `Invitation.teacherId / studentId / guardianId → profile` | No | Restrict | Invitations are removed by their own expiry job |
-| `Teacher / Student / Guardian.membershipId → Membership` | No | Restrict | Memberships are never deleted |
-| `StudentGuardian.studentId → Student` | Yes | Cascade | Link only |
-| `StudentGuardian.guardianId → Guardian` | Yes | Cascade | Link only |
-| `Term.academicYearId → AcademicYear` | Yes | Restrict | Terms carry grades |
-| `SchoolClass.academicYearId → AcademicYear` | Yes | Restrict | History |
-| `SchoolClass.gradeLevelId → GradeLevel` | Yes | Restrict | History |
-| `SchoolClass.homeroomTeacherId → Teacher` | No | Restrict | Reassign first |
-| `ClassSubject.classId → SchoolClass` | Yes | Restrict | Teaching history |
-| `ClassSubject.subjectId → Subject` | Yes | Restrict | Teaching history |
-| `ClassSubject.teacherId → Teacher` | Yes | Restrict | Reassign first |
-| `Enrollment.studentId → Student` | Yes | Restrict | Enrollment history |
-| `Enrollment.classId → SchoolClass` | Yes | Restrict | Enrollment history |
-| `Enrollment.academicYearId → AcademicYear` | Yes | Restrict | Enrollment history |
-| `Enrollment.transferredFromId → Enrollment` | No | Restrict | Transfer history |
-| `Period.academicYearId → AcademicYear` | Yes | Restrict | Timetable |
-| `TimetableEntry.classSubjectId → ClassSubject` | Yes | Cascade | A plan with no history value |
-| `TimetableEntry.periodId → Period` | Yes | Restrict | Avoid silently emptying the timetable |
-| `TimetableEntry.classId → SchoolClass` | Yes | Restrict | Copied key for overlap rules |
-| `TimetableEntry.teacherId → Teacher` | Yes | Restrict | Copied key for overlap rules |
-| `File.uploadedByMembershipId → Membership` | Yes | Restrict | Ownership |
-| `Material.classSubjectId → ClassSubject` | Yes | Restrict | Soft-deleted instead |
-| `Material.createdByTeacherId → Teacher` | Yes | Restrict | Authorship |
-| `Material.fileId → File` | No | Restrict | Files are soft-deleted |
-| `Assignment.classSubjectId → ClassSubject` | Yes | Restrict | Soft-deleted instead |
-| `Assignment.createdByTeacherId → Teacher` | Yes | Restrict | Authorship |
-| `AssignmentFile.assignmentId → Assignment` | Yes | Cascade | Link only |
-| `AssignmentFile.fileId → File` | Yes | Restrict | Files are soft-deleted |
-| `Submission.assignmentId → Assignment` | Yes | Restrict | Student work is kept |
-| `Submission.studentId → Student` | Yes | Restrict | Student work is kept |
-| `Submission.returnedByTeacherId → Teacher` | No | Restrict | Authorship |
-| `SubmissionFile.submissionId → Submission` | Yes | Cascade | Link only |
-| `SubmissionFile.fileId → File` | Yes | Restrict | Files are soft-deleted |
-| `AttendanceRecord.studentId → Student` | Yes | Restrict | Attendance history |
-| `AttendanceRecord.classId → SchoolClass` | Yes | Restrict | Attendance history |
-| `AttendanceRecord.recordedByMembershipId → Membership` | Yes | Restrict | Who recorded it |
-| `AttendanceChange.attendanceRecordId → AttendanceRecord` | Yes | Restrict | Append-only history |
-| `AttendanceChange.changedByMembershipId → Membership` | Yes | Restrict | Who changed it |
-| `GradingScaleBand.gradingScaleId → GradingScale` | Yes | Cascade | Part of the scale |
-| `Assessment.classSubjectId → ClassSubject` | Yes | Restrict | Grade history |
-| `Assessment.termId → Term` | Yes | Restrict | Grade history |
-| `Assessment.gradingScaleId → GradingScale` | Yes | Restrict | Grade history |
-| `Assessment.createdByTeacherId → Teacher` | Yes | Restrict | Authorship |
-| `Assessment.assignmentId → Assignment` | No | Restrict | Link to graded work |
-| `Grade.assessmentId → Assessment` | Yes | Restrict | Grade history |
-| `Grade.studentId → Student` | Yes | Restrict | Grade history |
-| `Grade.enteredByMembershipId → Membership` | Yes | Restrict | Who entered it |
-| `GradeChange.gradeId → Grade` | Yes | Restrict | Append-only history |
-| `GradeChange.changedByMembershipId → Membership` | Yes | Restrict | Who changed it |
-| `ReportCard.studentId → Student` | Yes | Restrict | Academic record |
-| `ReportCard.termId → Term` | Yes | Restrict | Academic record |
-| `ReportCard.classId → SchoolClass` | Yes | Restrict | Academic record |
-| `ReportCard.fileId → File` | Yes | Restrict | The issued PDF |
-| `ReportCard.generatedByMembershipId → Membership` | Yes | Restrict | Who generated it |
-| `Announcement.authorMembershipId → Membership` | Yes | Restrict | Authorship |
-| `Announcement.gradeLevelId / classId → target` | No | Restrict | Soft-deleted instead |
-| `Notification.recipientMembershipId → Membership` | Yes | Cascade | No history value |
-| `FeeStructure.academicYearId → AcademicYear` | Yes | Restrict | Finance history |
-| `FeeStructure.gradeLevelId → GradeLevel` | No | Restrict | Finance history |
-| `FeeStructureItem.feeStructureId → FeeStructure` | Yes | Cascade | Blocked anyway once an item is invoiced |
-| `Invoice.studentId → Student` | Yes | Restrict | Finance history |
-| `Invoice.academicYearId → AcademicYear` | Yes | Restrict | Finance history |
-| `Invoice.createdByMembershipId → Membership` | Yes | Restrict | Who created it |
-| `InvoiceLine.invoiceId → Invoice` | Yes | Cascade | Only draft invoices can be deleted |
-| `InvoiceLine.feeStructureItemId → FeeStructureItem` | No | Restrict | Finance history |
-| `Adjustment.invoiceId → Invoice` | Yes | Restrict | Append-only |
-| `Payment.studentId → Student` | Yes | Restrict | Append-only |
-| `Payment.payerGuardianId → Guardian` | No | Restrict | Append-only |
-| `Payment.recordedByMembershipId → Membership` | Yes | Restrict | Who recorded it |
-| `Payment.reversesPaymentId → Payment` | No | Restrict | Reversal history |
-| `Payment.reconciliationBatchId → ReconciliationBatch` | No | Restrict | Reconciliation history |
-| `PaymentAllocation.paymentId → Payment` | Yes | Restrict | Append-only |
-| `PaymentAllocation.invoiceId → Invoice` | Yes | Restrict | Append-only |
-| `PaymentAllocation.reversesAllocationId → PaymentAllocation` | No | Restrict | Reversal history |
-| `ReconciliationBatch.closedByMembershipId → Membership` | No | Restrict | Who closed it |
-| `ExportJob.requestedByMembershipId → Membership` | Yes | Restrict | Who asked for it |
-| `ExportJob.fileId → File` | No | Restrict | Files are soft-deleted |
+| Child → Parent                                               | Required | On delete | Why                                               |
+| ------------------------------------------------------------ | -------- | --------- | ------------------------------------------------- |
+| `Session.userId → User`                                      | Yes      | Cascade   | Sessions mean nothing without the user            |
+| `Session.activeMembershipId → Membership`                    | No       | Set null  | Global table, single-column key                   |
+| `AuthToken.userId → User`                                    | Yes      | Cascade   | Tokens mean nothing without the user              |
+| `School.logoFileId → File`                                   | No       | Set null  | Root table, single-column key                     |
+| `Membership.userId → User`                                   | Yes      | Restrict  | Users with memberships are suspended, not deleted |
+| `Invitation.invitedByMembershipId → Membership`              | Yes      | Restrict  | Keeps who invited whom                            |
+| `Invitation.teacherId / studentId / guardianId → profile`    | No       | Restrict  | Invitations are removed by their own expiry job   |
+| `Teacher / Student / Guardian.membershipId → Membership`     | No       | Restrict  | Memberships are never deleted                     |
+| `StudentGuardian.studentId → Student`                        | Yes      | Cascade   | Link only                                         |
+| `StudentGuardian.guardianId → Guardian`                      | Yes      | Cascade   | Link only                                         |
+| `Term.academicYearId → AcademicYear`                         | Yes      | Restrict  | Terms carry grades                                |
+| `SchoolClass.academicYearId → AcademicYear`                  | Yes      | Restrict  | History                                           |
+| `SchoolClass.gradeLevelId → GradeLevel`                      | Yes      | Restrict  | History                                           |
+| `SchoolClass.homeroomTeacherId → Teacher`                    | No       | Restrict  | Reassign first                                    |
+| `ClassSubject.classId → SchoolClass`                         | Yes      | Restrict  | Teaching history                                  |
+| `ClassSubject.subjectId → Subject`                           | Yes      | Restrict  | Teaching history                                  |
+| `ClassSubject.teacherId → Teacher`                           | Yes      | Restrict  | Reassign first                                    |
+| `Enrollment.studentId → Student`                             | Yes      | Restrict  | Enrollment history                                |
+| `Enrollment.classId → SchoolClass`                           | Yes      | Restrict  | Enrollment history                                |
+| `Enrollment.academicYearId → AcademicYear`                   | Yes      | Restrict  | Enrollment history                                |
+| `Enrollment.transferredFromId → Enrollment`                  | No       | Restrict  | Transfer history                                  |
+| `Period.academicYearId → AcademicYear`                       | Yes      | Restrict  | Timetable                                         |
+| `TimetableEntry.classSubjectId → ClassSubject`               | Yes      | Cascade   | A plan with no history value                      |
+| `TimetableEntry.periodId → Period`                           | Yes      | Restrict  | Avoid silently emptying the timetable             |
+| `TimetableEntry.classId → SchoolClass`                       | Yes      | Restrict  | Copied key for overlap rules                      |
+| `TimetableEntry.teacherId → Teacher`                         | Yes      | Restrict  | Copied key for overlap rules                      |
+| `File.uploadedByMembershipId → Membership`                   | Yes      | Restrict  | Ownership                                         |
+| `Material.classSubjectId → ClassSubject`                     | Yes      | Restrict  | Soft-deleted instead                              |
+| `Material.createdByTeacherId → Teacher`                      | Yes      | Restrict  | Authorship                                        |
+| `Material.fileId → File`                                     | No       | Restrict  | Files are soft-deleted                            |
+| `Assignment.classSubjectId → ClassSubject`                   | Yes      | Restrict  | Soft-deleted instead                              |
+| `Assignment.createdByTeacherId → Teacher`                    | Yes      | Restrict  | Authorship                                        |
+| `AssignmentFile.assignmentId → Assignment`                   | Yes      | Cascade   | Link only                                         |
+| `AssignmentFile.fileId → File`                               | Yes      | Restrict  | Files are soft-deleted                            |
+| `Submission.assignmentId → Assignment`                       | Yes      | Restrict  | Student work is kept                              |
+| `Submission.studentId → Student`                             | Yes      | Restrict  | Student work is kept                              |
+| `Submission.returnedByTeacherId → Teacher`                   | No       | Restrict  | Authorship                                        |
+| `SubmissionFile.submissionId → Submission`                   | Yes      | Cascade   | Link only                                         |
+| `SubmissionFile.fileId → File`                               | Yes      | Restrict  | Files are soft-deleted                            |
+| `AttendanceRecord.studentId → Student`                       | Yes      | Restrict  | Attendance history                                |
+| `AttendanceRecord.classId → SchoolClass`                     | Yes      | Restrict  | Attendance history                                |
+| `AttendanceRecord.recordedByMembershipId → Membership`       | Yes      | Restrict  | Who recorded it                                   |
+| `AttendanceChange.attendanceRecordId → AttendanceRecord`     | Yes      | Restrict  | Append-only history                               |
+| `AttendanceChange.changedByMembershipId → Membership`        | Yes      | Restrict  | Who changed it                                    |
+| `GradingScaleBand.gradingScaleId → GradingScale`             | Yes      | Cascade   | Part of the scale                                 |
+| `Assessment.classSubjectId → ClassSubject`                   | Yes      | Restrict  | Grade history                                     |
+| `Assessment.termId → Term`                                   | Yes      | Restrict  | Grade history                                     |
+| `Assessment.gradingScaleId → GradingScale`                   | Yes      | Restrict  | Grade history                                     |
+| `Assessment.createdByTeacherId → Teacher`                    | Yes      | Restrict  | Authorship                                        |
+| `Assessment.assignmentId → Assignment`                       | No       | Restrict  | Link to graded work                               |
+| `Grade.assessmentId → Assessment`                            | Yes      | Restrict  | Grade history                                     |
+| `Grade.studentId → Student`                                  | Yes      | Restrict  | Grade history                                     |
+| `Grade.enteredByMembershipId → Membership`                   | Yes      | Restrict  | Who entered it                                    |
+| `GradeChange.gradeId → Grade`                                | Yes      | Restrict  | Append-only history                               |
+| `GradeChange.changedByMembershipId → Membership`             | Yes      | Restrict  | Who changed it                                    |
+| `ReportCard.studentId → Student`                             | Yes      | Restrict  | Academic record                                   |
+| `ReportCard.termId → Term`                                   | Yes      | Restrict  | Academic record                                   |
+| `ReportCard.classId → SchoolClass`                           | Yes      | Restrict  | Academic record                                   |
+| `ReportCard.fileId → File`                                   | Yes      | Restrict  | The issued PDF                                    |
+| `ReportCard.generatedByMembershipId → Membership`            | Yes      | Restrict  | Who generated it                                  |
+| `Announcement.authorMembershipId → Membership`               | Yes      | Restrict  | Authorship                                        |
+| `Announcement.gradeLevelId / classId → target`               | No       | Restrict  | Soft-deleted instead                              |
+| `Notification.recipientMembershipId → Membership`            | Yes      | Cascade   | No history value                                  |
+| `FeeStructure.academicYearId → AcademicYear`                 | Yes      | Restrict  | Finance history                                   |
+| `FeeStructure.gradeLevelId → GradeLevel`                     | No       | Restrict  | Finance history                                   |
+| `FeeStructureItem.feeStructureId → FeeStructure`             | Yes      | Cascade   | Blocked anyway once an item is invoiced           |
+| `Invoice.studentId → Student`                                | Yes      | Restrict  | Finance history                                   |
+| `Invoice.academicYearId → AcademicYear`                      | Yes      | Restrict  | Finance history                                   |
+| `Invoice.createdByMembershipId → Membership`                 | Yes      | Restrict  | Who created it                                    |
+| `InvoiceLine.invoiceId → Invoice`                            | Yes      | Cascade   | Only draft invoices can be deleted                |
+| `InvoiceLine.feeStructureItemId → FeeStructureItem`          | No       | Restrict  | Finance history                                   |
+| `Adjustment.invoiceId → Invoice`                             | Yes      | Restrict  | Append-only                                       |
+| `Payment.studentId → Student`                                | Yes      | Restrict  | Append-only                                       |
+| `Payment.payerGuardianId → Guardian`                         | No       | Restrict  | Append-only                                       |
+| `Payment.recordedByMembershipId → Membership`                | Yes      | Restrict  | Who recorded it                                   |
+| `Payment.reversesPaymentId → Payment`                        | No       | Restrict  | Reversal history                                  |
+| `Payment.reconciliationBatchId → ReconciliationBatch`        | No       | Restrict  | Reconciliation history                            |
+| `PaymentAllocation.paymentId → Payment`                      | Yes      | Restrict  | Append-only                                       |
+| `PaymentAllocation.invoiceId → Invoice`                      | Yes      | Restrict  | Append-only                                       |
+| `PaymentAllocation.reversesAllocationId → PaymentAllocation` | No       | Restrict  | Reversal history                                  |
+| `ReconciliationBatch.closedByMembershipId → Membership`      | No       | Restrict  | Who closed it                                     |
+| `ExportJob.requestedByMembershipId → Membership`             | Yes      | Restrict  | Who asked for it                                  |
+| `ExportJob.fileId → File`                                    | No       | Restrict  | Files are soft-deleted                            |
 
 ---
 
@@ -425,44 +425,44 @@ PostgreSQL does not index foreign keys automatically, so every foreign key gets 
 
 ### 7.1 School scope and sign-in
 
-| Table | Index | Purpose |
-|-------|-------|---------|
-| `User` | unique `(email)` | Sign-in |
-| `Session` | unique `(tokenHash)`, `(userId)` | Session lookup, sign out everywhere |
-| `Membership` | unique `(schoolId, userId, role)`, `(userId)` | Schools a user belongs to |
-| `Student` | unique `(schoolId, studentNumber)`, `(schoolId, lastName, firstName)` | Lookup and search |
-| `StudentGuardian` | `(schoolId, guardianId)` | A parent's children |
+| Table             | Index                                                                 | Purpose                             |
+| ----------------- | --------------------------------------------------------------------- | ----------------------------------- |
+| `User`            | unique `(email)`                                                      | Sign-in                             |
+| `Session`         | unique `(tokenHash)`, `(userId)`                                      | Session lookup, sign out everywhere |
+| `Membership`      | unique `(schoolId, userId, role)`, `(userId)`                         | Schools a user belongs to           |
+| `Student`         | unique `(schoolId, studentNumber)`, `(schoolId, lastName, firstName)` | Lookup and search                   |
+| `StudentGuardian` | `(schoolId, guardianId)`                                              | A parent's children                 |
 
 ### 7.2 Active year
 
-| Table | Index | Purpose |
-|-------|-------|---------|
-| `AcademicYear` | unique `(schoolId)` where `isActive` (partial) | At most one active year |
-| `SchoolClass` | `(schoolId, academicYearId, gradeLevelId)` | Classes of the active year |
-| `Enrollment` | unique `(schoolId, studentId, academicYearId)` where `status = 'ACTIVE'` (partial) | At most one active enrollment per year |
-| `Enrollment` | `(schoolId, classId, status)` | Class lists |
-| `ClassSubject` | `(schoolId, teacherId)` | A teacher's classes |
-| `Assessment` | `(schoolId, classSubjectId, termId)` | Gradebook |
-| `TimetableEntry` | unique `(schoolId, classId, dayOfWeek, periodId)` | A class can't have two lessons at once |
-| `TimetableEntry` | unique `(schoolId, teacherId, dayOfWeek, periodId)` | A teacher can't be double-booked |
-| `TimetableEntry` | unique `(schoolId, room, dayOfWeek, periodId)` where `room IS NOT NULL` (partial) | A room can't be double-booked |
+| Table            | Index                                                                              | Purpose                                |
+| ---------------- | ---------------------------------------------------------------------------------- | -------------------------------------- |
+| `AcademicYear`   | unique `(schoolId)` where `isActive` (partial)                                     | At most one active year                |
+| `SchoolClass`    | `(schoolId, academicYearId, gradeLevelId)`                                         | Classes of the active year             |
+| `Enrollment`     | unique `(schoolId, studentId, academicYearId)` where `status = 'ACTIVE'` (partial) | At most one active enrollment per year |
+| `Enrollment`     | `(schoolId, classId, status)`                                                      | Class lists                            |
+| `ClassSubject`   | `(schoolId, teacherId)`                                                            | A teacher's classes                    |
+| `Assessment`     | `(schoolId, classSubjectId, termId)`                                               | Gradebook                              |
+| `TimetableEntry` | unique `(schoolId, classId, dayOfWeek, periodId)`                                  | A class can't have two lessons at once |
+| `TimetableEntry` | unique `(schoolId, teacherId, dayOfWeek, periodId)`                                | A teacher can't be double-booked       |
+| `TimetableEntry` | unique `(schoolId, room, dayOfWeek, periodId)` where `room IS NOT NULL` (partial)  | A room can't be double-booked          |
 
 ### 7.3 Reports and daily screens
 
-| Table | Index | Purpose |
-|-------|-------|---------|
-| `AttendanceRecord` | unique `(schoolId, studentId, date, period)` | One mark per student per slot |
-| `AttendanceRecord` | `(schoolId, classId, date)` | Daily class sheet, attendance reports |
-| `Grade` | unique `(schoolId, assessmentId, studentId)`, `(schoolId, studentId)` | Gradebook, student report |
-| `ReportCard` | unique `(schoolId, studentId, termId, locale, version)` | A student's report cards per term |
-| `Submission` | unique `(schoolId, assignmentId, studentId)` | One submission per student |
-| `Invoice` | unique `(schoolId, number)`, `(schoolId, studentId, status)` | Student balance |
-| `Invoice` | `(schoolId, dueDate)` where `status IN ('ISSUED', 'PARTIALLY_PAID')` (partial) | Overdue report |
-| `Payment` | unique `(schoolId, receiptNumber)`, unique `(schoolId, idempotencyKey)` | Receipts, no double posting |
-| `Payment` | `(schoolId, receivedAt)`, `(schoolId, studentId)` | Daily collections, student history |
-| `PaymentAllocation` | `(schoolId, invoiceId)`, `(schoolId, paymentId)` | Balances |
-| `Notification` | `(schoolId, recipientMembershipId, readAt)` | Unread count |
-| `AuditLog` | `(schoolId, createdAt)`, `(schoolId, entityType, entityId)` | Audit screens, a record's history |
+| Table               | Index                                                                          | Purpose                               |
+| ------------------- | ------------------------------------------------------------------------------ | ------------------------------------- |
+| `AttendanceRecord`  | unique `(schoolId, studentId, date, period)`                                   | One mark per student per slot         |
+| `AttendanceRecord`  | `(schoolId, classId, date)`                                                    | Daily class sheet, attendance reports |
+| `Grade`             | unique `(schoolId, assessmentId, studentId)`, `(schoolId, studentId)`          | Gradebook, student report             |
+| `ReportCard`        | unique `(schoolId, studentId, termId, locale, version)`                        | A student's report cards per term     |
+| `Submission`        | unique `(schoolId, assignmentId, studentId)`                                   | One submission per student            |
+| `Invoice`           | unique `(schoolId, number)`, `(schoolId, studentId, status)`                   | Student balance                       |
+| `Invoice`           | `(schoolId, dueDate)` where `status IN ('ISSUED', 'PARTIALLY_PAID')` (partial) | Overdue report                        |
+| `Payment`           | unique `(schoolId, receiptNumber)`, unique `(schoolId, idempotencyKey)`        | Receipts, no double posting           |
+| `Payment`           | `(schoolId, receivedAt)`, `(schoolId, studentId)`                              | Daily collections, student history    |
+| `PaymentAllocation` | `(schoolId, invoiceId)`, `(schoolId, paymentId)`                               | Balances                              |
+| `Notification`      | `(schoolId, recipientMembershipId, readAt)`                                    | Unread count                          |
+| `AuditLog`          | `(schoolId, createdAt)`, `(schoolId, entityType, entityId)`                    | Audit screens, a record's history     |
 
 Partial indexes (marked "partial") are written by hand in the migration SQL.
 
@@ -481,20 +481,20 @@ Partial indexes (marked "partial") are written by hand in the migration SQL.
 
 A daily cleanup job applies these rules:
 
-| Data | Rule |
-|------|------|
-| Sessions | Deleted 30 days after expiry |
-| Email tokens | Deleted 7 days after use or expiry |
-| Invitations | Deleted 30 days after acceptance, revocation or expiry |
-| Notifications | Deleted 180 days after creation |
-| Export files | Object purged at `expiresAt` (7 days); job row deleted after 90 days |
-| Soft-deleted files | Object removed from storage 30 days after `deletedAt`; the row stays with `purgedAt` |
-| Students | Never hard-deleted while they have academic or finance records. On a deletion request, personal fields are anonymized (names replaced, date of birth cleared, `anonymizedAt` set) and records stay linked to the anonymized row |
-| Grades, attendance, enrollment, report cards | Kept for the life of the school account (proposed; confirm with the school) |
-| Finance records | Never deleted; kept at least 10 years (proposed; confirm with the school's accountant) |
-| Audit log | 2 years; grade and finance entries kept as long as those records |
-| Suspended school | Data kept 90 days, then exported for the school and removed by a documented script, never by cascades |
-| Database backups | Provider backups plus a nightly `pg_dump` to Spaces kept 30 days, to meet SRS NFR-04 (check the provider's own retention, which may be shorter) |
+| Data                                         | Rule                                                                                                                                                                                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sessions                                     | Deleted 30 days after expiry                                                                                                                                                                                                    |
+| Email tokens                                 | Deleted 7 days after use or expiry                                                                                                                                                                                              |
+| Invitations                                  | Deleted 30 days after acceptance, revocation or expiry                                                                                                                                                                          |
+| Notifications                                | Deleted 180 days after creation                                                                                                                                                                                                 |
+| Export files                                 | Object purged at `expiresAt` (7 days); job row deleted after 90 days                                                                                                                                                            |
+| Soft-deleted files                           | Object removed from storage 30 days after `deletedAt`; the row stays with `purgedAt`                                                                                                                                            |
+| Students                                     | Never hard-deleted while they have academic or finance records. On a deletion request, personal fields are anonymized (names replaced, date of birth cleared, `anonymizedAt` set) and records stay linked to the anonymized row |
+| Grades, attendance, enrollment, report cards | Kept for the life of the school account (proposed; confirm with the school)                                                                                                                                                     |
+| Finance records                              | Never deleted; kept at least 10 years (proposed; confirm with the school's accountant)                                                                                                                                          |
+| Audit log                                    | 2 years; grade and finance entries kept as long as those records                                                                                                                                                                |
+| Suspended school                             | Data kept 90 days, then exported for the school and removed by a documented script, never by cascades                                                                                                                           |
+| Database backups                             | Provider backups plus a nightly `pg_dump` to Spaces kept 30 days, to meet SRS NFR-04 (check the provider's own retention, which may be shorter)                                                                                 |
 
 ---
 
@@ -538,11 +538,11 @@ A daily cleanup job applies these rules:
 
 The SRS open questions were answered in issue #4 ([decisions](./decisions.md)):
 
-| Decision | Effect on the schema |
-|----------|----------------------|
+| Decision                                  | Effect on the schema                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | D-02 Currency: USD and LBP, no conversion | `School.currencies` and `defaultCurrency`; `currency` on every money row; one currency per invoice |
-| D-04 Grading: each school chooses | `GradingScale.type` (`NUMERIC` or `LETTER`), `maxScore`, bands |
-| D-05 Attendance: every period | `AttendanceRecord.period` = the lesson's period number |
-| D-06 Report cards in v1 | New `ReportCard` table with a snapshot and its PDF |
-| D-07 Names: Arabic optional (proposed) | Optional `firstNameAr` / `lastNameAr` |
-| D-12 Retention (proposed) | Periods in section 8.2 |
+| D-04 Grading: each school chooses         | `GradingScale.type` (`NUMERIC` or `LETTER`), `maxScore`, bands                                     |
+| D-05 Attendance: every period             | `AttendanceRecord.period` = the lesson's period number                                             |
+| D-06 Report cards in v1                   | New `ReportCard` table with a snapshot and its PDF                                                 |
+| D-07 Names: Arabic optional (proposed)    | Optional `firstNameAr` / `lastNameAr`                                                              |
+| D-12 Retention (proposed)                 | Periods in section 8.2                                                                             |

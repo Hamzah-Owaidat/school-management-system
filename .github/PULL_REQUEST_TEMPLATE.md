@@ -1,7 +1,5 @@
 ## What does this PR do?
 
-
-
 ## Related issue
 
 Closes #
@@ -16,8 +14,6 @@ Closes #
 - [ ] Release (development to staging, or staging to production)
 
 ## How was it tested?
-
-
 
 ## Checklist
 

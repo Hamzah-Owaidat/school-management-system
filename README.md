@@ -19,33 +19,49 @@ pnpm install   # install all workspaces
 pnpm dev       # web on http://localhost:3000, API on http://localhost:4000
 ```
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Starts the web app and the API together |
-| `pnpm build` | Builds every package and app |
-| `pnpm lint` | Runs ESLint everywhere |
-| `pnpm typecheck` | Runs the TypeScript compiler without emitting |
-| `pnpm test` | Runs the tests (Vitest) |
+| Command             | What it does                                         |
+| ------------------- | ---------------------------------------------------- |
+| `pnpm dev`          | Starts the web app and the API together              |
+| `pnpm build`        | Builds every package and app                         |
+| `pnpm lint`         | Runs ESLint everywhere                               |
+| `pnpm typecheck`    | Runs the TypeScript compiler without emitting        |
+| `pnpm test`         | Runs the tests (Vitest)                              |
+| `pnpm format`       | Formats every file with Prettier                     |
+| `pnpm format:check` | Checks that every file is formatted, without writing |
 
 The web app forwards `/api/*` to the API, so the browser only talks to `localhost:3000`.
 
+### Commit messages
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`. A commit-msg hook (commitlint) rejects messages that don't match.
+
+Types: `feat`, `fix`, `docs`, `chore`, `test`, `refactor`, `perf`, `ci`, `build`, `style`, `revert`.
+
+Examples:
+
+```
+feat(api): add login route
+fix(web): correct RTL layout
+docs: update SRS
+```
+
 ## Repository layout
 
-| Path | Contents |
-|---|---|
-| `apps/web` | Next.js frontend |
-| `apps/api` | Express API |
-| `packages/contracts` | Types and Zod schemas shared by web and API |
-| `packages/config` | Shared TypeScript and ESLint configuration |
-| `docs` | SRS, architecture, ADRs, database design, permissions, decisions, roadmap |
+| Path                 | Contents                                                                  |
+| -------------------- | ------------------------------------------------------------------------- |
+| `apps/web`           | Next.js frontend                                                          |
+| `apps/api`           | Express API                                                               |
+| `packages/contracts` | Types and Zod schemas shared by web and API                               |
+| `packages/config`    | Shared TypeScript and ESLint configuration                                |
+| `docs`               | SRS, architecture, ADRs, database design, permissions, decisions, roadmap |
 
 ## Branches
 
-| Branch | Purpose | Deploys to |
-|---|---|---|
-| `production` | Live code used by schools | Production |
-| `staging` | Release candidate for testing | Staging |
-| `development` | Integration branch (default) | Local |
+| Branch        | Purpose                       | Deploys to |
+| ------------- | ----------------------------- | ---------- |
+| `production`  | Live code used by schools     | Production |
+| `staging`     | Release candidate for testing | Staging    |
+| `development` | Integration branch (default)  | Local      |
 
 Nobody pushes directly to these branches. Every change goes through a pull request. See CONTRIBUTING.md.
 
