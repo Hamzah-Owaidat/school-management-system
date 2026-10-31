@@ -1,11 +1,11 @@
 # Database design
 
 **Project:** School Management System
-**Version:** 0.1 (draft)
+**Version:** 0.2 (decisions from issue #4 applied)
 **Date:** 31 Oct 2026
 **Owner:** Hamzah Owaidat
 **Issue:** #3 · Milestone M0
-**Related:** [SRS](./srs.md) · [Architecture](./architecture.md) · [ADR 0002 Multi-tenancy](./adr/0002-multi-tenancy-model.md)
+**Related:** [SRS](./srs.md) · [Architecture](./architecture.md) · [ADR 0002 Multi-tenancy](./adr/0002-multi-tenancy-model.md) · [Decisions](./decisions.md)
 
 ---
 
@@ -68,6 +68,7 @@ The last column says how rows are removed (section 8).
 | Grading | `Assessment` | Scoped | Hard delete only while it has no grades |
 | Grading | `Grade` | Scoped | Never deleted; corrected with history |
 | Grading | `GradeChange` | Scoped | Append-only |
+| Grading | `ReportCard` | Scoped | Never deleted; regenerated as a new version |
 | Communication | `Announcement` | Scoped | Soft delete |
 | Communication | `Notification` | Scoped | Hard delete (retention job) |
 | Finance | `FeeStructure` | Scoped | Archive |
@@ -143,6 +144,9 @@ erDiagram
   Assessment ||--o{ Grade : has
   Student ||--o{ Grade : receives
   Grade ||--o{ GradeChange : "history"
+  Student ||--o{ ReportCard : receives
+  Term ||--o{ ReportCard : covers
+  File ||--o| ReportCard : "stored as"
   Student ||--o{ AttendanceRecord : has
   SchoolClass ||--o{ AttendanceRecord : "taken in"
   AttendanceRecord ||--o{ AttendanceChange : "history"
@@ -197,7 +201,7 @@ Every Scoped entity also has `id`, `schoolId`, `createdAt` and, where rows chang
 - **User** (Global): `email` (unique, stored lowercase), `passwordHash`, `emailVerifiedAt?`, `status: ACTIVE | SUSPENDED`, `isPlatformOperator` (default false), `locale?: ar | en | fr`, `lastLoginAt?`
 - **Session** (Global): `userId`, `tokenHash` (unique), `activeMembershipId?`, `ip?`, `userAgent?`, `lastSeenAt`, `idleExpiresAt`, `absoluteExpiresAt`
 - **AuthToken** (Global): `userId`, `type: EMAIL_VERIFICATION | PASSWORD_RESET`, `tokenHash` (unique), `expiresAt`, `usedAt?`
-- **School** (Root): `name`, `slug` (unique), `status: ACTIVE | SUSPENDED`, `defaultLocale`, `timezone` (default `Asia/Beirut`), `currency`, `logoFileId?`, `suspendedAt?`
+- **School** (Root): `name`, `slug` (unique), `status: ACTIVE | SUSPENDED`, `defaultLocale`, `timezone` (default `Asia/Beirut`), `defaultCurrency`, `currencies` (list; the pilot school uses `USD` and `LBP`), `logoFileId?`, `suspendedAt?`
 - **Membership**: `userId`, `role: SCHOOL_ADMIN | TEACHER | ACCOUNTANT | STUDENT | PARENT`, `status: ACTIVE | SUSPENDED`; unique `(schoolId, userId, role)`
 - **Invitation**: `email`, `role`, `tokenHash` (unique), `invitedByMembershipId`, `teacherId?`, `studentId?`, `guardianId?`, `expiresAt`, `acceptedAt?`, `revokedAt?`
 
@@ -233,7 +237,7 @@ Profiles exist without an account: a young student may never sign in. `membershi
 
 ### 4.5 Files and teaching
 
-- **File**: `uploadedByMembershipId`, `module: MATERIAL | ASSIGNMENT | SUBMISSION | LOGO | EXPORT`, `storageKey` (unique), `originalName`, `mimeType`, `sizeBytes`, `checksumSha256`, `deletedAt?`, `purgedAt?`
+- **File**: `uploadedByMembershipId`, `module: MATERIAL | ASSIGNMENT | SUBMISSION | LOGO | EXPORT | REPORT_CARD`, `storageKey` (unique), `originalName`, `mimeType`, `sizeBytes`, `checksumSha256`, `deletedAt?`, `purgedAt?`
 - **Material**: `classSubjectId`, `createdByTeacherId`, `title`, `description?`, `type: FILE | LINK`, `fileId?`, `url?`, `publishedAt?`, `deletedAt?`
 - **Assignment**: `classSubjectId`, `createdByTeacherId`, `title`, `instructions?`, `dueAt`, `maxScore?`, `publishedAt?`, `deletedAt?`
 - **AssignmentFile**: `assignmentId`, `fileId`; unique `(schoolId, assignmentId, fileId)`
@@ -245,15 +249,18 @@ Profiles exist without an account: a young student may never sign in. `membershi
 - **AttendanceRecord**: `studentId`, `classId`, `date`, `period` (0 = whole day), `status: PRESENT | ABSENT | LATE | EXCUSED`, `note?`, `recordedByMembershipId`; unique `(schoolId, studentId, date, period)`
 - **AttendanceChange**: `attendanceRecordId`, `oldStatus`, `newStatus`, `reason`, `changedByMembershipId`, `changedAt`
 
-`period = 0` supports daily attendance; `period = 1…n` supports attendance per period, so either answer to the SRS open question fits.
+Attendance is taken every period (decision D-05), so `period` is the lesson's period number (1…n). `period = 0` stays reserved for a school that takes daily attendance.
 
 ### 4.7 Grading
 
-- **GradingScale**: `name`, `maxScore` (for example 20 or 100), `passScore`, `isDefault`, `archivedAt?`
+- **GradingScale**: `name`, `type: NUMERIC | LETTER`, `maxScore` (for example 20 or 100), `passScore`, `isDefault`, `archivedAt?`
 - **GradingScaleBand**: `gradingScaleId`, `label` (for example `A`), `minPercent`, `maxPercent`
 - **Assessment**: `classSubjectId`, `termId`, `gradingScaleId`, `createdByTeacherId`, `assignmentId?`, `title`, `type: EXAM | QUIZ | HOMEWORK | PROJECT | OTHER`, `maxScore`, `weight`, `date?`, `status: DRAFT | PUBLISHED`, `publishedAt?`
 - **Grade**: `assessmentId`, `studentId`, `score?`, `isExcused`, `comment?`, `enteredByMembershipId`; unique `(schoolId, assessmentId, studentId)`
 - **GradeChange**: `gradeId`, `oldScore?`, `newScore?`, `oldExcused`, `newExcused`, `reason`, `changedByMembershipId`, `changedAt`
+- **ReportCard**: `studentId`, `termId`, `classId`, `locale: ar | en | fr`, `version`, `fileId`, `data` (JSON snapshot: subject averages, overall average, attendance totals, homeroom comment), `generatedByMembershipId`, `generatedAt`; unique `(schoolId, studentId, termId, locale, version)`
+
+Each school picks its scale (decision D-04). Teachers always enter marks against the assessment's `maxScore`; averages are calculated as percentages and shown on the school's scale, using the bands for a `LETTER` scale.
 
 ### 4.8 Communication
 
@@ -381,6 +388,11 @@ Every Scoped table's `schoolId → School`: **Restrict** (schools are suspended,
 | `Grade.enteredByMembershipId → Membership` | Yes | Restrict | Who entered it |
 | `GradeChange.gradeId → Grade` | Yes | Restrict | Append-only history |
 | `GradeChange.changedByMembershipId → Membership` | Yes | Restrict | Who changed it |
+| `ReportCard.studentId → Student` | Yes | Restrict | Academic record |
+| `ReportCard.termId → Term` | Yes | Restrict | Academic record |
+| `ReportCard.classId → SchoolClass` | Yes | Restrict | Academic record |
+| `ReportCard.fileId → File` | Yes | Restrict | The issued PDF |
+| `ReportCard.generatedByMembershipId → Membership` | Yes | Restrict | Who generated it |
 | `Announcement.authorMembershipId → Membership` | Yes | Restrict | Authorship |
 | `Announcement.gradeLevelId / classId → target` | No | Restrict | Soft-deleted instead |
 | `Notification.recipientMembershipId → Membership` | Yes | Cascade | No history value |
@@ -442,6 +454,7 @@ PostgreSQL does not index foreign keys automatically, so every foreign key gets 
 | `AttendanceRecord` | unique `(schoolId, studentId, date, period)` | One mark per student per slot |
 | `AttendanceRecord` | `(schoolId, classId, date)` | Daily class sheet, attendance reports |
 | `Grade` | unique `(schoolId, assessmentId, studentId)`, `(schoolId, studentId)` | Gradebook, student report |
+| `ReportCard` | unique `(schoolId, studentId, termId, locale, version)` | A student's report cards per term |
 | `Submission` | unique `(schoolId, assignmentId, studentId)` | One submission per student |
 | `Invoice` | unique `(schoolId, number)`, `(schoolId, studentId, status)` | Student balance |
 | `Invoice` | `(schoolId, dueDate)` where `status IN ('ISSUED', 'PARTIALLY_PAID')` (partial) | Overdue report |
@@ -477,7 +490,7 @@ A daily cleanup job applies these rules:
 | Export files | Object purged at `expiresAt` (7 days); job row deleted after 90 days |
 | Soft-deleted files | Object removed from storage 30 days after `deletedAt`; the row stays with `purgedAt` |
 | Students | Never hard-deleted while they have academic or finance records. On a deletion request, personal fields are anonymized (names replaced, date of birth cleared, `anonymizedAt` set) and records stay linked to the anonymized row |
-| Grades, attendance, enrollment | Kept for the life of the school account (proposed; confirm with the school) |
+| Grades, attendance, enrollment, report cards | Kept for the life of the school account (proposed; confirm with the school) |
 | Finance records | Never deleted; kept at least 10 years (proposed; confirm with the school's accountant) |
 | Audit log | 2 years; grade and finance entries kept as long as those records |
 | Suspended school | Data kept 90 days, then exported for the school and removed by a documented script, never by cascades |
@@ -510,7 +523,7 @@ A daily cleanup job applies these rules:
 4. When a term is locked (`Term.gradesLockedAt`), only a school admin can change its grades, still with a reason.
 5. Grades are never deleted. A grade that no longer counts is marked `isExcused` or cleared through a change with a reason.
 6. An assessment can be deleted only while it has no grades.
-7. Term averages are computed from published grades and assessment weights, not stored. Report-card snapshots would be added if report cards join v1.
+7. Term averages are computed from published grades and assessment weights. Generating report cards saves the averages in a `ReportCard` snapshot, so an issued report card never changes (decision D-06).
 8. After a transfer, grades stay with the assessments of the old class, so the student's history is complete.
 
 ### 10.2 Attendance
@@ -521,13 +534,15 @@ A daily cleanup job applies these rules:
 
 ---
 
-## 11. Open questions that affect the schema
+## 11. Decisions applied
 
-| Question (from the SRS) | How the schema copes now |
-|-------------------------|--------------------------|
-| USD, LBP or both? | `currency` on every money row; one currency per invoice |
-| Marks out of 20, out of 100, or letters? | `GradingScale.maxScore` plus optional letter bands |
-| Names in Arabic and Latin script? | Optional `firstNameAr` / `lastNameAr` fields |
-| Attendance per day or per period? | `period` field: 0 = whole day, 1…n = period |
-| Report cards in v1? | Would add a `TermResult` snapshot table |
-| How long must records be kept? | Proposed periods in section 8.2, to confirm with the school |
+The SRS open questions were answered in issue #4 ([decisions](./decisions.md)):
+
+| Decision | Effect on the schema |
+|----------|----------------------|
+| D-02 Currency: USD and LBP, no conversion | `School.currencies` and `defaultCurrency`; `currency` on every money row; one currency per invoice |
+| D-04 Grading: each school chooses | `GradingScale.type` (`NUMERIC` or `LETTER`), `maxScore`, bands |
+| D-05 Attendance: every period | `AttendanceRecord.period` = the lesson's period number |
+| D-06 Report cards in v1 | New `ReportCard` table with a snapshot and its PDF |
+| D-07 Names: Arabic optional (proposed) | Optional `firstNameAr` / `lastNameAr` |
+| D-12 Retention (proposed) | Periods in section 8.2 |
