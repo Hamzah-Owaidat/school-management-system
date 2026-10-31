@@ -7,7 +7,37 @@ Multi-tenant School Management System (SaaS). One platform for many schools, wit
 - Web: Next.js (App Router) + TypeScript
 - API: Express + TypeScript
 - Database: PostgreSQL + Prisma
+- Monorepo: pnpm workspaces + Turborepo
 - Languages: Arabic (RTL), English, French
+
+## Getting started
+
+Requirements: Node.js 22.12 or newer, pnpm 12 (`npm install -g pnpm@12.16.1`).
+
+```bash
+pnpm install   # install all workspaces
+pnpm dev       # web on http://localhost:3000, API on http://localhost:4000
+```
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Starts the web app and the API together |
+| `pnpm build` | Builds every package and app |
+| `pnpm lint` | Runs ESLint everywhere |
+| `pnpm typecheck` | Runs the TypeScript compiler without emitting |
+| `pnpm test` | Runs the tests (Vitest) |
+
+The web app forwards `/api/*` to the API, so the browser only talks to `localhost:3000`.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `apps/web` | Next.js frontend |
+| `apps/api` | Express API |
+| `packages/contracts` | Types and Zod schemas shared by web and API |
+| `packages/config` | Shared TypeScript and ESLint configuration |
+| `docs` | SRS, architecture, ADRs, database design, permissions, decisions, roadmap |
 
 ## Branches
 
@@ -31,7 +61,7 @@ Project documents live in the `docs/` folder: SRS, architecture, database design
 
 ## Status
 
-Planning (M0). Not production ready.
+M1 (repository and infrastructure) in progress. Not production ready.
 
 ## License
 

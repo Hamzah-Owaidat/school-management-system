@@ -18,7 +18,7 @@
 5. **Suspended means nothing.** A suspended user, membership or school has no permissions.
 6. **Checked on the server.** The web app hides buttons the user can't use, but only the API's policy layer decides (issue #16).
 
-Permission keys are constants in `packages/shared` so the API and the web app use the same names.
+Permission keys are constants in `packages/contracts` so the API and the web app use the same names.
 
 ---
 
