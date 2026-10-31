@@ -49,7 +49,7 @@ Web and API share one domain, so the session cookie is first-party and the brows
 
 ## 3. Repository layout
 
-A pnpm workspace monorepo:
+A pnpm workspace monorepo, run with Turborepo:
 
 ```text
 school-management-system/
@@ -68,8 +68,9 @@ school-management-system/
 │           ├── server.ts    # starts the API
 │           └── worker.ts    # starts the worker
 ├── packages/
-│   ├── db/                  # Prisma schema, migrations, seed, tenant-scoped client
-│   └── shared/              # types, Zod schemas, permission names, shared constants
+│   ├── config/              # shared TypeScript and ESLint configuration
+│   ├── contracts/           # types, Zod schemas, permission keys, shared constants (web + API)
+│   └── db/                  # Prisma schema, migrations, seed, tenant-scoped client (added in #7)
 ├── docs/                    # SRS, architecture, ERD, ADRs
 ├── docker-compose.yml       # local: PostgreSQL, MinIO, Mailpit
 └── .github/                 # CI, templates
