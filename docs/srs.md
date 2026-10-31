@@ -100,9 +100,4 @@ To be confirmed:
 
 ## 7. Open questions
 
-1. **Currency:** does the pilot school bill in USD, LBP or both?
-2. **Grading scale:** marks out of 20, out of 100, or letters?
-3. **Report cards:** are printable term report cards needed in v1?
-4. **Names:** store student names in both Arabic and Latin script?
-5. **Attendance:** recorded once per day or per period?
-6. **Arabic digits:** Western (0–9) or Eastern Arabic (٠–٩) in the Arabic interface?
+All answered in [decisions](./decisions.md) (issue #4): currency (D-02), grading scale (D-04), report cards (D-06), Arabic names (D-07), attendance (D-05) and Arabic digits (D-08).
