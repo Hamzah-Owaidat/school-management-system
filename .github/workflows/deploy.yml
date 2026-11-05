@@ -12,18 +12,38 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  API_IMAGE: ghcr.io/${{ github.repository_owner }}/school-management-system-api
-  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/school-management-system-web
 
 jobs:
+  # Docker repository names must be lowercase, but github.repository_owner preserves
+  # the account's actual case (e.g. "Hamzah-Owaidat") — compute it once here so the
+  # images and deploy jobs can't drift apart on this.
+  names:
+    name: names
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api_image: ${{ steps.names.outputs.api_image }}
+      web_image: ${{ steps.names.outputs.web_image }}
+    steps:
+      - name: Compute lowercase image names
+        id: names
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "api_image=${{ env.REGISTRY }}/$owner/school-management-system-api" >> "$GITHUB_OUTPUT"
+          echo "web_image=${{ env.REGISTRY }}/$owner/school-management-system-web" >> "$GITHUB_OUTPUT"
+
   images:
     name: images
+    needs: names
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ github.ref_name }}
     permissions:
       contents: read
       packages: write
+    env:
+      API_IMAGE: ${{ needs.names.outputs.api_image }}
+      WEB_IMAGE: ${{ needs.names.outputs.web_image }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
@@ -66,13 +86,16 @@ jobs:
 
   deploy:
     name: deploy
-    needs: images
+    needs: [names, images]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ github.ref_name }}
     # Off until the DigitalOcean droplet exists; the environment variable is set to
     # "true" per environment once it does (see docs/deployment.md).
     if: vars.DEPLOY_ENABLED == 'true'
+    env:
+      API_IMAGE: ${{ needs.names.outputs.api_image }}
+      WEB_IMAGE: ${{ needs.names.outputs.web_image }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
