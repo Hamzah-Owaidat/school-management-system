@@ -1,0 +1,11 @@
+# Routes everything through one address (ADR 0003: web and the API are same-origin,
+# so the session cookie is first-party and the browser never makes cross-origin calls).
+{$SITE_ADDRESS:http://localhost:8080} {
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

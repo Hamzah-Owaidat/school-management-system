@@ -10,10 +10,16 @@ describe("loadConfig", () => {
   });
 
   it("parses valid overrides", () => {
-    const config = loadConfig({ NODE_ENV: "production", API_PORT: "8080", LOG_LEVEL: "debug" });
+    const config = loadConfig({
+      NODE_ENV: "production",
+      API_PORT: "8080",
+      LOG_LEVEL: "debug",
+      DATABASE_URL: "postgresql://real-host:5432/sms",
+    });
     expect(config.NODE_ENV).toBe("production");
     expect(config.API_PORT).toBe(8080);
     expect(config.LOG_LEVEL).toBe("debug");
+    expect(config.DATABASE_URL).toBe("postgresql://real-host:5432/sms");
   });
 
   it("throws a readable error for an invalid API_PORT", () => {
@@ -22,5 +28,27 @@ describe("loadConfig", () => {
 
   it("throws a readable error for an invalid LOG_LEVEL", () => {
     expect(() => loadConfig({ LOG_LEVEL: "verbose" })).toThrow(/LOG_LEVEL/);
+  });
+
+  it("falls back to the placeholder DATABASE_URL in development", () => {
+    const config = loadConfig({ NODE_ENV: "development" });
+    expect(config.DATABASE_URL).toBe("postgresql://localhost:5432/placeholder");
+  });
+
+  it("falls back to the placeholder DATABASE_URL in test", () => {
+    const config = loadConfig({ NODE_ENV: "test" });
+    expect(config.DATABASE_URL).toBe("postgresql://localhost:5432/placeholder");
+  });
+
+  it("requires DATABASE_URL in production", () => {
+    expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/DATABASE_URL/);
+  });
+
+  it("accepts a real DATABASE_URL in production", () => {
+    const config = loadConfig({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://real-host:5432/sms",
+    });
+    expect(config.DATABASE_URL).toBe("postgresql://real-host:5432/sms");
   });
 });
