@@ -19,9 +19,14 @@ export function ApiStatus() {
   if (state.kind === "loading") return <p>Checking the API…</p>;
   if (state.kind === "error")
     return <p className="status-error">API is not reachable on /api/health.</p>;
+
+  const { health } = state;
+  const databaseLabel = health.database === "ok" ? "up" : "down";
+
   return (
-    <p className="status-ok">
-      API is up ({state.health.service}, {new Date(state.health.time).toLocaleTimeString()}).
+    <p className={health.database === "ok" ? "status-ok" : "status-error"}>
+      API is up ({health.service}, {new Date(health.time).toLocaleTimeString()}). Database is{" "}
+      {databaseLabel}.
     </p>
   );
 }
