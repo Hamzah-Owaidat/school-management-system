@@ -69,6 +69,14 @@ CI (`.github/workflows/ci.yml`) runs on every pull request into `development`, `
 
 Both `quality` and `integration` are required checks: a failing test blocks merging.
 
+## Production build
+
+Until the pilot school approves, "staging" and "production" are both a
+production build running locally with Docker Compose (D-16), not real
+servers. See [docs/deployment.md](./docs/deployment.md) for the full
+how-to, the env files, the secret rules and how the (currently switched off)
+deploy workflow gets turned on after approval.
+
 ### Commit messages
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`. A commit-msg hook (commitlint) rejects messages that don't match.

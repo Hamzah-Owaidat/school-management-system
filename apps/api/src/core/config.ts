@@ -20,6 +20,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .join("\n");
     throw new Error(`Invalid environment configuration:\n${details}`);
   }
+
+  // The placeholder above only exists so dev/test can run with no .env and no
+  // database; a production process must always be told the real database.
+  if (result.data.NODE_ENV === "production" && !env.DATABASE_URL) {
+    throw new Error("Invalid environment configuration:\n  DATABASE_URL: Required in production");
+  }
+
   return result.data;
 }
 

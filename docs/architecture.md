@@ -170,7 +170,7 @@ Details: [ADR 0004](./adr/0004-private-file-storage.md).
 | Staging     | DigitalOcean (after approval)                                       | Test each release before production             |
 | Production  | DigitalOcean droplet + Managed PostgreSQL + Spaces (after approval) | The pilot school                                |
 
-Branches map to environments: `development` → local, `staging` → staging, `production` → production. Details: [ADR 0005](./adr/0005-hosting-and-deployment.md).
+Branches map to environments: `development` → local, `staging` → staging, `production` → production. Details: [ADR 0005](./adr/0005-hosting-and-deployment.md) and [docs/deployment.md](./deployment.md).
 
 ---
 
