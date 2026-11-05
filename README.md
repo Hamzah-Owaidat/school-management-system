@@ -12,24 +12,42 @@ Multi-tenant School Management System (SaaS). One platform for many schools, wit
 
 ## Getting started
 
-Requirements: Node.js 22.12 or newer, pnpm 12 (`npm install -g pnpm@12.16.1`).
+Requirements: Node.js 22.12 or newer, pnpm 12 (`npm install -g pnpm@12.16.1`), [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-pnpm install   # install all workspaces
-pnpm dev       # web on http://localhost:3000, API on http://localhost:4000
+cp .env.example .env   # local-only defaults; edit if a port is already taken
+pnpm install            # install all workspaces
+pnpm db:up              # start PostgreSQL and Mailpit
+pnpm db:migrate         # create the database schema
+pnpm db:seed            # add a demo school (synthetic data)
+pnpm dev                # web on http://localhost:3000, API on http://localhost:4000
 ```
 
-| Command             | What it does                                         |
-| ------------------- | ---------------------------------------------------- |
-| `pnpm dev`          | Starts the web app and the API together              |
-| `pnpm build`        | Builds every package and app                         |
-| `pnpm lint`         | Runs ESLint everywhere                               |
-| `pnpm typecheck`    | Runs the TypeScript compiler without emitting        |
-| `pnpm test`         | Runs the tests (Vitest)                              |
-| `pnpm format`       | Formats every file with Prettier                     |
-| `pnpm format:check` | Checks that every file is formatted, without writing |
+| Port   | Service        |
+| ------ | -------------- |
+| `3000` | Web            |
+| `4000` | API            |
+| `5432` | PostgreSQL     |
+| `8025` | Mailpit web UI |
 
-The web app forwards `/api/*` to the API, so the browser only talks to `localhost:3000`.
+| Command             | What it does                                                        |
+| ------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`          | Starts the web app and the API together                             |
+| `pnpm build`        | Builds every package and app                                        |
+| `pnpm lint`         | Runs ESLint everywhere                                              |
+| `pnpm typecheck`    | Runs the TypeScript compiler without emitting                       |
+| `pnpm test`         | Runs the tests (Vitest)                                             |
+| `pnpm format`       | Formats every file with Prettier                                    |
+| `pnpm format:check` | Checks that every file is formatted, without writing                |
+| `pnpm db:up`        | Starts PostgreSQL and Mailpit in Docker                             |
+| `pnpm db:down`      | Stops them                                                          |
+| `pnpm db:migrate`   | Applies migrations, creating new ones from schema changes           |
+| `pnpm db:deploy`    | Applies existing migrations without creating new ones (CI, deploys) |
+| `pnpm db:seed`      | Adds synthetic demo data                                            |
+| `pnpm db:reset`     | Drops the database, re-applies migrations and seeds it again        |
+| `pnpm db:studio`    | Opens Prisma Studio to browse the database                          |
+
+The web app forwards `/api/*` to the API, so the browser never makes cross-origin calls.
 
 ### Commit messages
 

@@ -70,7 +70,7 @@ school-management-system/
 ├── packages/
 │   ├── config/              # shared TypeScript and ESLint configuration
 │   ├── contracts/           # types, Zod schemas, permission keys, shared constants (web + API)
-│   └── db/                  # Prisma schema, migrations, seed, tenant-scoped client (added in #7)
+│   └── db/                  # Prisma schema, migrations, seed, tenant-scoped client
 ├── docs/                    # SRS, architecture, ERD, ADRs
 ├── docker-compose.yml       # local: PostgreSQL, MinIO, Mailpit
 └── .github/                 # CI, templates
