@@ -11,11 +11,13 @@
     "lint": "eslint .",
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "prisma generate && vitest run",
+    "test:integration": "prisma generate && vitest run --config vitest.integration.config.ts",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "prisma db seed",
     "reset": "prisma migrate reset",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

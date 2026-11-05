@@ -11,6 +11,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
@@ -20,7 +21,8 @@
     "db:deploy": "pnpm --filter @sms/db migrate:deploy",
     "db:seed": "pnpm --filter @sms/db seed",
     "db:reset": "pnpm --filter @sms/db reset",
-    "db:studio": "pnpm --filter @sms/db studio"
+    "db:studio": "pnpm --filter @sms/db studio",
+    "db:check": "pnpm --filter @sms/db check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
