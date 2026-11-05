@@ -9,6 +9,7 @@
     "POSTGRES_DB",
     "POSTGRES_PORT",
     "DATABASE_URL",
+    "LOG_LEVEL",
     "SMTP_HOST",
     "SMTP_PORT",
     "MAIL_FROM"

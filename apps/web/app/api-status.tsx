@@ -10,7 +10,7 @@ export function ApiStatus() {
   const [state, setState] = useState<State>({ kind: "loading" });
 
   useEffect(() => {
-    fetch("/api/health")
+    fetch("/api/v1/health")
       .then((response) => response.json())
       .then((body: unknown) => setState({ kind: "ok", health: HealthResponseSchema.parse(body) }))
       .catch(() => setState({ kind: "error" }));
@@ -18,7 +18,7 @@ export function ApiStatus() {
 
   if (state.kind === "loading") return <p>Checking the API…</p>;
   if (state.kind === "error")
-    return <p className="status-error">API is not reachable on /api/health.</p>;
+    return <p className="status-error">API is not reachable on /api/v1/health.</p>;
 
   const { health } = state;
   const databaseLabel = health.database === "ok" ? "up" : "down";
