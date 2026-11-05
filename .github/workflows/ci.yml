@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - development
+      - staging
+      - production
+  push:
+    branches:
+      - development
+      - staging
+      - production
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: turbo-quality-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-quality-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Run unit tests
+        run: pnpm test
+
+      # No .env file and no database here — proves the build works without either.
+      - name: Build
+        run: pnpm build
+
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: sms
+          POSTGRES_PASSWORD: sms
+          POSTGRES_DB: sms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sms -d sms"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Throwaway password, scoped to this ephemeral service container only.
+      DATABASE_URL: postgresql://sms:sms@localhost:5432/sms?schema=public
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: turbo-integration-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-integration-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations to a fresh database
+        run: pnpm db:deploy
+
+      - name: Check schema.prisma matches the applied migrations
+        run: pnpm db:check
+
+      - name: Run integration tests
+        run: pnpm test:integration
