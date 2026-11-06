@@ -1,0 +1,115 @@
+# A fixed, distinct project name (rather than the directory name, which docker-compose.yml
+# also defaults to) keeps every container, network and volume here separate from the
+# development stack — it must never collide with or recreate dev's containers.
+name: sms-prod
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies migrations, then exits. Reuses the API image unmodified,
+  # just with a different command (see apps/api/Dockerfile for why the Prisma CLI,
+  # schema and migrations are in that image). Runs the Prisma CLI's own bin
+  # directly, not through `pnpm`: pnpm's own startup check expects every workspace
+  # project's dependencies to be installed, which this production-only image
+  # deliberately doesn't have.
+  migrate:
+    image: ${API_IMAGE:-school-management-system-api}:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    working_dir: /app/packages/db
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:-school-management-system-api}:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_PORT: ${API_PORT:-4000}
+      DATABASE_URL: ${DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:4000/api/v1/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  web:
+    image: ${WEB_IMAGE:-school-management-system-web}:${IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      # Baked into the build: Next.js resolves rewrites() at build time (see next.config.ts).
+      args:
+        API_URL: http://api:4000
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Single public address for both web and the API (ADR 0003); never touches the
+  # development database — its own volume, its own env file (.env.staging / .env.production).
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    # Must match the port in SITE_ADDRESS below if you change it.
+    ports:
+      - "8080:8080"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-http://localhost:8080}
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy-prod-data:/data
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-prod-data:
+  caddy-prod-data:

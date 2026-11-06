@@ -4,4 +4,24 @@ All notable changes to this project are listed here. Format: Keep a Changelog. V
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-05
+
+First internal release: there are no user-facing features yet, and staging runs as a local production build until the pilot school approves (decision D-16).
+
+### Added
+
 - Project setup: repository, branches, rulesets, labels, milestones, project board.
+- Software requirements specification (#70)
+- Architecture document and decision records (#71)
+- Database design and ERD (#72)
+- Permissions, threat model, decisions log and roadmap (#73)
+- Monorepo with pnpm workspaces and Turborepo: Next.js web app, Express API, shared contracts and config packages (#74)
+- Code quality tooling: strict TypeScript, ESLint, Prettier, Husky, lint-staged and commitlint (#75)
+- Local environment: Docker Compose with PostgreSQL and Mailpit, Prisma 7, the first migration and a synthetic seed (#76)
+- API foundation: module pattern, request validation, a consistent error shape, request IDs, structured logging, `GET /api/v1/health` and an OpenAPI document (#77)
+- CI pipeline with quality and integration jobs, required on pull requests into development, staging and production (#78)
+- Docker images for the API and web app, a local production stack (Docker Compose and Caddy) and a deploy workflow (#79)
+
+### Changed
+
+- `DATABASE_URL` is now required when `NODE_ENV` is production (#79)

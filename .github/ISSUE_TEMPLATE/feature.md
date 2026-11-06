@@ -8,8 +8,6 @@ assignees: Hamzah-Owaidat
 
 ### Goal
 
-
-
 ### Checklist
 
 - [ ]
@@ -19,4 +17,5 @@ assignees: Hamzah-Owaidat
 -
 
 ---
+
 **Branch:** `feature/<issue>-short-name` from `development`

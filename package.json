@@ -1,0 +1,39 @@
+{
+  "name": "school-management-system",
+  "private": true,
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @sms/db migrate",
+    "db:deploy": "pnpm --filter @sms/db migrate:deploy",
+    "db:seed": "pnpm --filter @sms/db seed",
+    "db:reset": "pnpm --filter @sms/db reset",
+    "db:studio": "pnpm --filter @sms/db studio",
+    "db:check": "pnpm --filter @sms/db check",
+    "prod:up": "docker compose -f docker-compose.prod.yml --env-file .env.staging up -d --build",
+    "prod:down": "docker compose -f docker-compose.prod.yml --env-file .env.staging down",
+    "prod:logs": "docker compose -f docker-compose.prod.yml --env-file .env.staging logs -f"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.10",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,118 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - staging
+      - production
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # Docker repository names must be lowercase, but github.repository_owner preserves
+  # the account's actual case (e.g. "Hamzah-Owaidat") — compute it once here so the
+  # images and deploy jobs can't drift apart on this.
+  names:
+    name: names
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api_image: ${{ steps.names.outputs.api_image }}
+      web_image: ${{ steps.names.outputs.web_image }}
+    steps:
+      - name: Compute lowercase image names
+        id: names
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "api_image=${{ env.REGISTRY }}/$owner/school-management-system-api" >> "$GITHUB_OUTPUT"
+          echo "web_image=${{ env.REGISTRY }}/$owner/school-management-system-web" >> "$GITHUB_OUTPUT"
+
+  images:
+    name: images
+    needs: names
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.ref_name }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      API_IMAGE: ${{ needs.names.outputs.api_image }}
+      WEB_IMAGE: ${{ needs.names.outputs.web_image }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Builds the Dockerfiles on every push to staging/production, whether or not
+      # DEPLOY_ENABLED is set, so a broken image is caught before approval too.
+      - name: Build and push the API image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.API_IMAGE }}:${{ github.sha }}
+            ${{ env.API_IMAGE }}:${{ github.ref_name }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push the web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.WEB_IMAGE }}:${{ github.sha }}
+            ${{ env.WEB_IMAGE }}:${{ github.ref_name }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  deploy:
+    name: deploy
+    needs: [names, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.ref_name }}
+    # Off until the DigitalOcean droplet exists; the environment variable is set to
+    # "true" per environment once it does (see docs/deployment.md).
+    if: vars.DEPLOY_ENABLED == 'true'
+    env:
+      API_IMAGE: ${{ needs.names.outputs.api_image }}
+      WEB_IMAGE: ${{ needs.names.outputs.web_image }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: API_IMAGE,WEB_IMAGE
+          script: |
+            set -e
+            cd /opt/school-management-system
+            export API_IMAGE WEB_IMAGE
+            export IMAGE_TAG=${{ github.sha }}
+            COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.${{ github.ref_name }}"
+            $COMPOSE pull api web
+            $COMPOSE run --rm migrate
+            $COMPOSE up -d

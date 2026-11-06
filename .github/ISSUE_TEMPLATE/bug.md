@@ -8,11 +8,7 @@ assignees: Hamzah-Owaidat
 
 ### What happened?
 
-
-
 ### What should happen?
-
-
 
 ### Steps to reproduce
 
@@ -25,4 +21,5 @@ assignees: Hamzah-Owaidat
 - Language: Arabic / English / French
 
 ---
+
 **Branch:** `fix/<issue>-short-name` from `development` (or `hotfix/` from `production` if live)
