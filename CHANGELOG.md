@@ -4,6 +4,11 @@ All notable changes to this project are listed here. Format: Keep a Changelog. V
 
 ## [Unreleased]
 
+### Fixed
+
+- Production stack containers (`postgres`, `migrate`, `api`) now read `DATABASE_URL`, `POSTGRES_*`, `NODE_ENV`, `API_PORT`, `LOG_LEVEL`, `SMTP_*` and `MAIL_FROM` only from the selected env file, never from a variable already exported in the shell running Compose
+- Installed OpenSSL and ca-certificates in the API image so Prisma no longer falls back to an outdated OpenSSL version and can run migrations reliably
+
 ## [0.1.0] - 2026-11-05
 
 First internal release: there are no user-facing features yet, and staging runs as a local production build until the pilot school approves (decision D-16).

@@ -29,6 +29,9 @@ RUN turbo prune @sms/api --docker
 # ---- Install every dependency (including dev) and build ----
 FROM base AS builder
 WORKDIR /app
+# Prisma's query engine needs libssl to run `prisma generate`; node:24-slim has none.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
@@ -47,6 +50,10 @@ RUN pnpm install --frozen-lockfile --prod
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Prisma's query engine needs libssl at runtime too (both the API server and the
+# "migrate" service above, which reuses this image).
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 1001 nodejs \
  && useradd --system --uid 1001 --gid nodejs api
 

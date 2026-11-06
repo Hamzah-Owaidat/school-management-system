@@ -38,9 +38,28 @@ app — same-origin, as in [ADR 0003](./adr/0003-authentication-and-sessions.md)
 
 To run a second instance standing in for "production" at the same time, copy
 `.env.production.example` to `.env.production` with **different** values (see
-below) and run the same commands with `--env-file .env.production -p sms-production`
-(the `-p` flag gives it a separate Compose project name and volumes, so it
-doesn't collide with the staging run).
+below) and run the same commands with `ENV_FILE=.env.production` set and
+`--env-file .env.production -p sms-production` added (the `-p` flag gives it a
+separate Compose project name and volumes, so it doesn't collide with the
+staging run).
+
+### Container settings come only from the env file
+
+Every setting a container needs (`DATABASE_URL`, `POSTGRES_*`, `NODE_ENV`,
+`API_PORT`, `LOG_LEVEL`, `SMTP_*`, `MAIL_FROM`) is loaded with Compose's
+`env_file:` directive, which reads the file named by the `ENV_FILE` Compose
+variable (`${ENV_FILE:-.env.staging}` — `.env.staging` if `ENV_FILE` isn't
+set). This is deliberate: Compose's `${...}` interpolation gives a variable
+already exported in the shell running `docker compose` priority over
+`--env-file`, so a leftover `DATABASE_URL` in your terminal (say, pointing at
+the local dev database) would otherwise silently replace the staging or
+production value — breaking "no production secret is used in staging"
+(D-16). `env_file:` has no such fallback to the host shell: it only ever
+reads the file on disk, so `pnpm prod:up`/`prod:down`/`prod:logs` always use
+`.env.staging` regardless of what's exported in your shell. `API_IMAGE`,
+`WEB_IMAGE`, `IMAGE_TAG` and `SITE_ADDRESS` are the exception — those are
+meant to come from outside (the deploy workflow, or your shell for a manual
+rollback) and still use `${...}` interpolation.
 
 ## 3. Env files and secrets
 
@@ -86,8 +105,9 @@ branch name). To roll back, redeploy the previous SHA tag on the server:
 
 ```bash
 export IMAGE_TAG=<previous-sha>
-docker compose -f docker-compose.prod.yml --env-file .env.production pull api web
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+export ENV_FILE=.env.production
+docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" pull api web
+docker compose -f docker-compose.prod.yml --env-file "$ENV_FILE" up -d
 ```
 
 Migrations are forward-only (`prisma migrate deploy` never rolls back a

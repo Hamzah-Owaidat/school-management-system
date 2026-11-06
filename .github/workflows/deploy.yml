@@ -112,7 +112,10 @@ jobs:
             cd /opt/school-management-system
             export API_IMAGE WEB_IMAGE
             export IMAGE_TAG=${{ github.sha }}
-            COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.${{ github.ref_name }}"
+            # Selects which env file the stack's containers read their settings
+            # from (see docker-compose.prod.yml's env_file: and docs/deployment.md).
+            export ENV_FILE=.env.${{ github.ref_name }}
+            COMPOSE="docker compose -f docker-compose.prod.yml --env-file $ENV_FILE"
             $COMPOSE pull api web
             $COMPOSE run --rm migrate
             $COMPOSE up -d
