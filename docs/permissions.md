@@ -13,8 +13,8 @@
 
 1. **Deny by default.** A request is allowed only if a rule below allows it.
 2. **Permission + scope.** Every check asks two questions: does the role have the permission key, and is the record inside the user's scope?
-3. **One active role.** Permissions come only from the session's active membership. A user who is both a teacher and a parent switches between the two; the permissions are never merged.
-4. **School from the session.** The school is always the active membership's school, never a value sent by the browser.
+3. **One active role.** Permissions come only from the session's active `MembershipRole`. A user who is both a teacher and a parent holds two `MembershipRole` rows and switches between them; the permissions are never merged.
+4. **School from the session.** The school is always the active `MembershipRole`'s school, never a value sent by the browser.
 5. **Suspended means nothing.** A suspended user, membership or school has no permissions.
 6. **Checked on the server.** The web app hides buttons the user can't use, but only the API's policy layer decides (issue #16).
 
@@ -135,7 +135,7 @@ Permission keys are constants in `packages/contracts` so the API and the web app
 
 Notes:
 
-- **Separation of duties:** the school admin can read finance but can't record or reverse payments. A person who does both jobs gets two memberships (admin and accountant) and switches between them.
+- **Separation of duties:** the school admin can read finance but can't record or reverse payments. A person who does both jobs gets two roles on one membership (admin and accountant, D-17) and switches between them in the session.
 - **Teachers and parents:** a teacher sees the parents of students in their own classes so they can contact them; they never see finance.
 - **Students' finance:** students see their own balance; parents see each linked child's invoices and payments (decision D-03).
 - **Platform operator:** has no access to a school's data inside the app in v1 (decision D-18).

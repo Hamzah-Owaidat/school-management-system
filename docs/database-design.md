@@ -1,8 +1,8 @@
 # Database design
 
 **Project:** School Management System
-**Version:** 0.2 (decisions from issue #4 applied)
-**Date:** 31 Oct 2026
+**Version:** 0.3 (identity and tenancy schema from issue #12 applied)
+**Date:** 7 Nov 2026
 **Owner:** Hamzah Owaidat
 **Issue:** #3 · Milestone M0
 **Related:** [SRS](./srs.md) · [Architecture](./architecture.md) · [ADR 0002 Multi-tenancy](./adr/0002-multi-tenancy-model.md) · [Decisions](./decisions.md)
@@ -37,10 +37,14 @@ The last column says how rows are removed (section 8).
 | Area          | Entity                | Tenant rule        | Removal                                           |
 | ------------- | --------------------- | ------------------ | ------------------------------------------------- |
 | Identity      | `User`                | Global             | Suspended, never deleted while memberships exist  |
-| Identity      | `Session`             | Global             | Hard delete (expiry job)                          |
+| Identity      | `AuthSession`         | Global             | Hard delete (expiry job)                          |
 | Identity      | `AuthToken`           | Global             | Hard delete (expiry job)                          |
 | Identity      | `School`              | Root               | Suspended; offboarding by script                  |
-| Identity      | `Membership`          | Scoped             | Suspended, never deleted                          |
+| Identity      | `SchoolMembership`    | Scoped             | Suspended, never deleted                          |
+| Identity      | `Role`                | Global             | Seeded; never deleted while attached              |
+| Identity      | `Permission`          | Global             | Seeded; never deleted while on a role             |
+| Identity      | `RolePermission`      | Global             | Hard delete (matrix row removed)                  |
+| Identity      | `MembershipRole`      | Scoped             | Hard delete (role detached)                       |
 | Identity      | `Invitation`          | Scoped             | Hard delete (expiry job)                          |
 | People        | `Teacher`             | Scoped             | Soft delete                                       |
 | People        | `Student`             | Scoped             | Soft delete, then anonymize on request            |
@@ -95,16 +99,20 @@ Every Scoped entity also belongs to `School`; that relation is not drawn, to kee
 
 ```mermaid
 erDiagram
-  School ||--o{ Membership : has
-  User ||--o{ Membership : holds
-  User ||--o{ Session : has
+  School ||--o{ SchoolMembership : has
+  User ||--o{ SchoolMembership : holds
+  User ||--o{ AuthSession : has
   User ||--o{ AuthToken : has
-  Membership |o--o{ Session : "active in"
+  SchoolMembership ||--o{ MembershipRole : holds
+  Role ||--o{ MembershipRole : "attached as"
+  Role ||--o{ RolePermission : grants
+  Permission ||--o{ RolePermission : "granted by"
+  MembershipRole |o--o{ AuthSession : "active in"
   School ||--o{ Invitation : sends
-  Membership ||--o{ Invitation : "invited by"
-  Membership |o--o| Teacher : "signs in as"
-  Membership |o--o| Student : "signs in as"
-  Membership |o--o| Guardian : "signs in as"
+  SchoolMembership ||--o{ Invitation : "invited by"
+  SchoolMembership |o--o| Teacher : "signs in as"
+  SchoolMembership |o--o| Student : "signs in as"
+  SchoolMembership |o--o| Guardian : "signs in as"
   Student ||--o{ StudentGuardian : has
   Guardian ||--o{ StudentGuardian : has
 ```
@@ -180,12 +188,12 @@ erDiagram
 
 ```mermaid
 erDiagram
-  Membership ||--o{ Announcement : writes
+  SchoolMembership ||--o{ Announcement : writes
   GradeLevel |o--o{ Announcement : targets
   SchoolClass |o--o{ Announcement : targets
-  Membership ||--o{ Notification : receives
-  Membership ||--o{ File : uploads
-  Membership ||--o{ ExportJob : requests
+  SchoolMembership ||--o{ Notification : receives
+  SchoolMembership ||--o{ File : uploads
+  SchoolMembership ||--o{ ExportJob : requests
   File |o--o| ExportJob : "result of"
   School |o--o{ AuditLog : records
 ```
@@ -198,14 +206,16 @@ Every Scoped entity also has `id`, `schoolId`, `createdAt` and, where rows chang
 
 ### 4.1 Identity
 
-- **User** (Global): `email` (unique, stored lowercase), `passwordHash`, `emailVerifiedAt?`, `status: ACTIVE | SUSPENDED`, `isPlatformOperator` (default false), `locale?: ar | en | fr`, `lastLoginAt?`
-- **Session** (Global): `userId`, `tokenHash` (unique), `activeMembershipId?`, `ip?`, `userAgent?`, `lastSeenAt`, `idleExpiresAt`, `absoluteExpiresAt`
+- **User** (Global): `email` (unique, stored lowercase), `passwordHash?` (set when the user accepts an invitation), `emailVerifiedAt?`, `status: ACTIVE | SUSPENDED`, `isPlatformOperator` (default false), `locale?: ar | en | fr`, `lastLoginAt?`
+- **AuthSession** (Global): `userId`, `tokenHash` (unique), `activeMembershipRoleId?`, `ip?`, `userAgent?`, `lastSeenAt`, `idleExpiresAt`, `absoluteExpiresAt`. Uses exactly one active `MembershipRole`; permissions from a user's other roles are never merged (permissions.md section 1, rule 3).
 - **AuthToken** (Global): `userId`, `type: EMAIL_VERIFICATION | PASSWORD_RESET`, `tokenHash` (unique), `expiresAt`, `usedAt?`
 - **School** (Root): `name`, `slug` (unique), `status: ACTIVE | SUSPENDED`, `defaultLocale`, `timezone` (default `Asia/Beirut`), `defaultCurrency`, `currencies` (list; the pilot school uses `USD` and `LBP`), `logoFileId?`, `suspendedAt?`
-- **Membership**: `userId`, `role: SCHOOL_ADMIN | TEACHER | ACCOUNTANT | STUDENT | PARENT`, `status: ACTIVE | SUSPENDED`; unique `(schoolId, userId, role)`
+- **SchoolMembership**: `userId`, `status: ACTIVE | SUSPENDED`; one row per person per school, unique `(schoolId, userId)`. The roles a person holds in that school are separate `MembershipRole` rows: a person who is admin and accountant has two (decision D-17), and switches between them.
+- **Role** (Global): `key` (unique, one of the six roles in permissions.md section 4), `name`, `scope: PLATFORM | SCHOOL`. System-wide in v1, seeded from `packages/contracts`; per-school custom roles are for later. The platform operator is `User.isPlatformOperator`, not a membership (decision D-18): its `PLATFORM_OPERATOR` role exists so all six roles are seeded, but it is never attached through `MembershipRole`.
+- **Permission** (Global): `key` (unique, one of the 42 keys in permissions.md section 3), `description`.
+- **RolePermission** (Global): `roleId`, `permissionId`, `scope: ALL_SCHOOLS | SCHOOL | OWN_CLASSES | OWN_LESSONS | SELF | CHILDREN | TARGETED`, `condition?: PUBLISHED_ONLY | UNLOCKED_TERMS_ONLY | FINANCE_ONLY | FEEDBACK_ONLY`; unique `(roleId, permissionId)`. One row per cell of the role matrix.
+- **MembershipRole**: `membershipId`, `roleId`; unique `(schoolId, id)`, unique `(schoolId, membershipId, roleId)`. The membership relation is the composite `(schoolId, membershipId) → SchoolMembership(schoolId, id)`, so a role can never be attached to another school's membership.
 - **Invitation**: `email`, `role`, `tokenHash` (unique), `invitedByMembershipId`, `teacherId?`, `studentId?`, `guardianId?`, `expiresAt`, `acceptedAt?`, `revokedAt?`
-
-The platform operator is `User.isPlatformOperator`, not a membership, so that role never enters a school's tenant context.
 
 ### 4.2 People
 
@@ -331,91 +341,97 @@ Optional relations handled this way: `SchoolClass.homeroomTeacherId`, `Teacher/S
 
 Every Scoped table's `schoolId → School`: **Restrict** (schools are suspended, never deleted by a cascade).
 
-| Child → Parent                                               | Required | On delete | Why                                               |
-| ------------------------------------------------------------ | -------- | --------- | ------------------------------------------------- |
-| `Session.userId → User`                                      | Yes      | Cascade   | Sessions mean nothing without the user            |
-| `Session.activeMembershipId → Membership`                    | No       | Set null  | Global table, single-column key                   |
-| `AuthToken.userId → User`                                    | Yes      | Cascade   | Tokens mean nothing without the user              |
-| `School.logoFileId → File`                                   | No       | Set null  | Root table, single-column key                     |
-| `Membership.userId → User`                                   | Yes      | Restrict  | Users with memberships are suspended, not deleted |
-| `Invitation.invitedByMembershipId → Membership`              | Yes      | Restrict  | Keeps who invited whom                            |
-| `Invitation.teacherId / studentId / guardianId → profile`    | No       | Restrict  | Invitations are removed by their own expiry job   |
-| `Teacher / Student / Guardian.membershipId → Membership`     | No       | Restrict  | Memberships are never deleted                     |
-| `StudentGuardian.studentId → Student`                        | Yes      | Cascade   | Link only                                         |
-| `StudentGuardian.guardianId → Guardian`                      | Yes      | Cascade   | Link only                                         |
-| `Term.academicYearId → AcademicYear`                         | Yes      | Restrict  | Terms carry grades                                |
-| `SchoolClass.academicYearId → AcademicYear`                  | Yes      | Restrict  | History                                           |
-| `SchoolClass.gradeLevelId → GradeLevel`                      | Yes      | Restrict  | History                                           |
-| `SchoolClass.homeroomTeacherId → Teacher`                    | No       | Restrict  | Reassign first                                    |
-| `ClassSubject.classId → SchoolClass`                         | Yes      | Restrict  | Teaching history                                  |
-| `ClassSubject.subjectId → Subject`                           | Yes      | Restrict  | Teaching history                                  |
-| `ClassSubject.teacherId → Teacher`                           | Yes      | Restrict  | Reassign first                                    |
-| `Enrollment.studentId → Student`                             | Yes      | Restrict  | Enrollment history                                |
-| `Enrollment.classId → SchoolClass`                           | Yes      | Restrict  | Enrollment history                                |
-| `Enrollment.academicYearId → AcademicYear`                   | Yes      | Restrict  | Enrollment history                                |
-| `Enrollment.transferredFromId → Enrollment`                  | No       | Restrict  | Transfer history                                  |
-| `Period.academicYearId → AcademicYear`                       | Yes      | Restrict  | Timetable                                         |
-| `TimetableEntry.classSubjectId → ClassSubject`               | Yes      | Cascade   | A plan with no history value                      |
-| `TimetableEntry.periodId → Period`                           | Yes      | Restrict  | Avoid silently emptying the timetable             |
-| `TimetableEntry.classId → SchoolClass`                       | Yes      | Restrict  | Copied key for overlap rules                      |
-| `TimetableEntry.teacherId → Teacher`                         | Yes      | Restrict  | Copied key for overlap rules                      |
-| `File.uploadedByMembershipId → Membership`                   | Yes      | Restrict  | Ownership                                         |
-| `Material.classSubjectId → ClassSubject`                     | Yes      | Restrict  | Soft-deleted instead                              |
-| `Material.createdByTeacherId → Teacher`                      | Yes      | Restrict  | Authorship                                        |
-| `Material.fileId → File`                                     | No       | Restrict  | Files are soft-deleted                            |
-| `Assignment.classSubjectId → ClassSubject`                   | Yes      | Restrict  | Soft-deleted instead                              |
-| `Assignment.createdByTeacherId → Teacher`                    | Yes      | Restrict  | Authorship                                        |
-| `AssignmentFile.assignmentId → Assignment`                   | Yes      | Cascade   | Link only                                         |
-| `AssignmentFile.fileId → File`                               | Yes      | Restrict  | Files are soft-deleted                            |
-| `Submission.assignmentId → Assignment`                       | Yes      | Restrict  | Student work is kept                              |
-| `Submission.studentId → Student`                             | Yes      | Restrict  | Student work is kept                              |
-| `Submission.returnedByTeacherId → Teacher`                   | No       | Restrict  | Authorship                                        |
-| `SubmissionFile.submissionId → Submission`                   | Yes      | Cascade   | Link only                                         |
-| `SubmissionFile.fileId → File`                               | Yes      | Restrict  | Files are soft-deleted                            |
-| `AttendanceRecord.studentId → Student`                       | Yes      | Restrict  | Attendance history                                |
-| `AttendanceRecord.classId → SchoolClass`                     | Yes      | Restrict  | Attendance history                                |
-| `AttendanceRecord.recordedByMembershipId → Membership`       | Yes      | Restrict  | Who recorded it                                   |
-| `AttendanceChange.attendanceRecordId → AttendanceRecord`     | Yes      | Restrict  | Append-only history                               |
-| `AttendanceChange.changedByMembershipId → Membership`        | Yes      | Restrict  | Who changed it                                    |
-| `GradingScaleBand.gradingScaleId → GradingScale`             | Yes      | Cascade   | Part of the scale                                 |
-| `Assessment.classSubjectId → ClassSubject`                   | Yes      | Restrict  | Grade history                                     |
-| `Assessment.termId → Term`                                   | Yes      | Restrict  | Grade history                                     |
-| `Assessment.gradingScaleId → GradingScale`                   | Yes      | Restrict  | Grade history                                     |
-| `Assessment.createdByTeacherId → Teacher`                    | Yes      | Restrict  | Authorship                                        |
-| `Assessment.assignmentId → Assignment`                       | No       | Restrict  | Link to graded work                               |
-| `Grade.assessmentId → Assessment`                            | Yes      | Restrict  | Grade history                                     |
-| `Grade.studentId → Student`                                  | Yes      | Restrict  | Grade history                                     |
-| `Grade.enteredByMembershipId → Membership`                   | Yes      | Restrict  | Who entered it                                    |
-| `GradeChange.gradeId → Grade`                                | Yes      | Restrict  | Append-only history                               |
-| `GradeChange.changedByMembershipId → Membership`             | Yes      | Restrict  | Who changed it                                    |
-| `ReportCard.studentId → Student`                             | Yes      | Restrict  | Academic record                                   |
-| `ReportCard.termId → Term`                                   | Yes      | Restrict  | Academic record                                   |
-| `ReportCard.classId → SchoolClass`                           | Yes      | Restrict  | Academic record                                   |
-| `ReportCard.fileId → File`                                   | Yes      | Restrict  | The issued PDF                                    |
-| `ReportCard.generatedByMembershipId → Membership`            | Yes      | Restrict  | Who generated it                                  |
-| `Announcement.authorMembershipId → Membership`               | Yes      | Restrict  | Authorship                                        |
-| `Announcement.gradeLevelId / classId → target`               | No       | Restrict  | Soft-deleted instead                              |
-| `Notification.recipientMembershipId → Membership`            | Yes      | Cascade   | No history value                                  |
-| `FeeStructure.academicYearId → AcademicYear`                 | Yes      | Restrict  | Finance history                                   |
-| `FeeStructure.gradeLevelId → GradeLevel`                     | No       | Restrict  | Finance history                                   |
-| `FeeStructureItem.feeStructureId → FeeStructure`             | Yes      | Cascade   | Blocked anyway once an item is invoiced           |
-| `Invoice.studentId → Student`                                | Yes      | Restrict  | Finance history                                   |
-| `Invoice.academicYearId → AcademicYear`                      | Yes      | Restrict  | Finance history                                   |
-| `Invoice.createdByMembershipId → Membership`                 | Yes      | Restrict  | Who created it                                    |
-| `InvoiceLine.invoiceId → Invoice`                            | Yes      | Cascade   | Only draft invoices can be deleted                |
-| `InvoiceLine.feeStructureItemId → FeeStructureItem`          | No       | Restrict  | Finance history                                   |
-| `Adjustment.invoiceId → Invoice`                             | Yes      | Restrict  | Append-only                                       |
-| `Payment.studentId → Student`                                | Yes      | Restrict  | Append-only                                       |
-| `Payment.payerGuardianId → Guardian`                         | No       | Restrict  | Append-only                                       |
-| `Payment.recordedByMembershipId → Membership`                | Yes      | Restrict  | Who recorded it                                   |
-| `Payment.reversesPaymentId → Payment`                        | No       | Restrict  | Reversal history                                  |
-| `Payment.reconciliationBatchId → ReconciliationBatch`        | No       | Restrict  | Reconciliation history                            |
-| `PaymentAllocation.paymentId → Payment`                      | Yes      | Restrict  | Append-only                                       |
-| `PaymentAllocation.invoiceId → Invoice`                      | Yes      | Restrict  | Append-only                                       |
-| `PaymentAllocation.reversesAllocationId → PaymentAllocation` | No       | Restrict  | Reversal history                                  |
-| `ReconciliationBatch.closedByMembershipId → Membership`      | No       | Restrict  | Who closed it                                     |
-| `ExportJob.requestedByMembershipId → Membership`             | Yes      | Restrict  | Who asked for it                                  |
-| `ExportJob.fileId → File`                                    | No       | Restrict  | Files are soft-deleted                            |
+| Child → Parent                                                 | Required | On delete | Why                                                         |
+| -------------------------------------------------------------- | -------- | --------- | ----------------------------------------------------------- |
+| `AuthSession.userId → User`                                    | Yes      | Cascade   | Sessions mean nothing without the user                      |
+| `AuthSession.activeMembershipRoleId → MembershipRole`          | No       | Set null  | Global table, single-column key                             |
+| `AuthToken.userId → User`                                      | Yes      | Cascade   | Tokens mean nothing without the user                        |
+| `School.logoFileId → File`                                     | No       | Set null  | Root table, single-column key                               |
+| `SchoolMembership.schoolId → School`                           | Yes      | Restrict  | Schools are suspended, never deleted by a cascade           |
+| `SchoolMembership.userId → User`                               | Yes      | Restrict  | Users with memberships are suspended, not deleted           |
+| `MembershipRole.schoolId → School`                             | Yes      | Restrict  | Schools are suspended, never deleted by a cascade           |
+| `MembershipRole.(schoolId, membershipId) → SchoolMembership`   | Yes      | Restrict  | A role can never be attached to another school's membership |
+| `MembershipRole.roleId → Role`                                 | Yes      | Restrict  | Detach roles before deleting one                            |
+| `RolePermission.roleId → Role`                                 | Yes      | Cascade   | A matrix row means nothing without its role                 |
+| `RolePermission.permissionId → Permission`                     | Yes      | Cascade   | A matrix row means nothing without its permission           |
+| `Invitation.invitedByMembershipId → SchoolMembership`          | Yes      | Restrict  | Keeps who invited whom                                      |
+| `Invitation.teacherId / studentId / guardianId → profile`      | No       | Restrict  | Invitations are removed by their own expiry job             |
+| `Teacher / Student / Guardian.membershipId → SchoolMembership` | No       | Restrict  | Memberships are never deleted                               |
+| `StudentGuardian.studentId → Student`                          | Yes      | Cascade   | Link only                                                   |
+| `StudentGuardian.guardianId → Guardian`                        | Yes      | Cascade   | Link only                                                   |
+| `Term.academicYearId → AcademicYear`                           | Yes      | Restrict  | Terms carry grades                                          |
+| `SchoolClass.academicYearId → AcademicYear`                    | Yes      | Restrict  | History                                                     |
+| `SchoolClass.gradeLevelId → GradeLevel`                        | Yes      | Restrict  | History                                                     |
+| `SchoolClass.homeroomTeacherId → Teacher`                      | No       | Restrict  | Reassign first                                              |
+| `ClassSubject.classId → SchoolClass`                           | Yes      | Restrict  | Teaching history                                            |
+| `ClassSubject.subjectId → Subject`                             | Yes      | Restrict  | Teaching history                                            |
+| `ClassSubject.teacherId → Teacher`                             | Yes      | Restrict  | Reassign first                                              |
+| `Enrollment.studentId → Student`                               | Yes      | Restrict  | Enrollment history                                          |
+| `Enrollment.classId → SchoolClass`                             | Yes      | Restrict  | Enrollment history                                          |
+| `Enrollment.academicYearId → AcademicYear`                     | Yes      | Restrict  | Enrollment history                                          |
+| `Enrollment.transferredFromId → Enrollment`                    | No       | Restrict  | Transfer history                                            |
+| `Period.academicYearId → AcademicYear`                         | Yes      | Restrict  | Timetable                                                   |
+| `TimetableEntry.classSubjectId → ClassSubject`                 | Yes      | Cascade   | A plan with no history value                                |
+| `TimetableEntry.periodId → Period`                             | Yes      | Restrict  | Avoid silently emptying the timetable                       |
+| `TimetableEntry.classId → SchoolClass`                         | Yes      | Restrict  | Copied key for overlap rules                                |
+| `TimetableEntry.teacherId → Teacher`                           | Yes      | Restrict  | Copied key for overlap rules                                |
+| `File.uploadedByMembershipId → SchoolMembership`               | Yes      | Restrict  | Ownership                                                   |
+| `Material.classSubjectId → ClassSubject`                       | Yes      | Restrict  | Soft-deleted instead                                        |
+| `Material.createdByTeacherId → Teacher`                        | Yes      | Restrict  | Authorship                                                  |
+| `Material.fileId → File`                                       | No       | Restrict  | Files are soft-deleted                                      |
+| `Assignment.classSubjectId → ClassSubject`                     | Yes      | Restrict  | Soft-deleted instead                                        |
+| `Assignment.createdByTeacherId → Teacher`                      | Yes      | Restrict  | Authorship                                                  |
+| `AssignmentFile.assignmentId → Assignment`                     | Yes      | Cascade   | Link only                                                   |
+| `AssignmentFile.fileId → File`                                 | Yes      | Restrict  | Files are soft-deleted                                      |
+| `Submission.assignmentId → Assignment`                         | Yes      | Restrict  | Student work is kept                                        |
+| `Submission.studentId → Student`                               | Yes      | Restrict  | Student work is kept                                        |
+| `Submission.returnedByTeacherId → Teacher`                     | No       | Restrict  | Authorship                                                  |
+| `SubmissionFile.submissionId → Submission`                     | Yes      | Cascade   | Link only                                                   |
+| `SubmissionFile.fileId → File`                                 | Yes      | Restrict  | Files are soft-deleted                                      |
+| `AttendanceRecord.studentId → Student`                         | Yes      | Restrict  | Attendance history                                          |
+| `AttendanceRecord.classId → SchoolClass`                       | Yes      | Restrict  | Attendance history                                          |
+| `AttendanceRecord.recordedByMembershipId → SchoolMembership`   | Yes      | Restrict  | Who recorded it                                             |
+| `AttendanceChange.attendanceRecordId → AttendanceRecord`       | Yes      | Restrict  | Append-only history                                         |
+| `AttendanceChange.changedByMembershipId → SchoolMembership`    | Yes      | Restrict  | Who changed it                                              |
+| `GradingScaleBand.gradingScaleId → GradingScale`               | Yes      | Cascade   | Part of the scale                                           |
+| `Assessment.classSubjectId → ClassSubject`                     | Yes      | Restrict  | Grade history                                               |
+| `Assessment.termId → Term`                                     | Yes      | Restrict  | Grade history                                               |
+| `Assessment.gradingScaleId → GradingScale`                     | Yes      | Restrict  | Grade history                                               |
+| `Assessment.createdByTeacherId → Teacher`                      | Yes      | Restrict  | Authorship                                                  |
+| `Assessment.assignmentId → Assignment`                         | No       | Restrict  | Link to graded work                                         |
+| `Grade.assessmentId → Assessment`                              | Yes      | Restrict  | Grade history                                               |
+| `Grade.studentId → Student`                                    | Yes      | Restrict  | Grade history                                               |
+| `Grade.enteredByMembershipId → SchoolMembership`               | Yes      | Restrict  | Who entered it                                              |
+| `GradeChange.gradeId → Grade`                                  | Yes      | Restrict  | Append-only history                                         |
+| `GradeChange.changedByMembershipId → SchoolMembership`         | Yes      | Restrict  | Who changed it                                              |
+| `ReportCard.studentId → Student`                               | Yes      | Restrict  | Academic record                                             |
+| `ReportCard.termId → Term`                                     | Yes      | Restrict  | Academic record                                             |
+| `ReportCard.classId → SchoolClass`                             | Yes      | Restrict  | Academic record                                             |
+| `ReportCard.fileId → File`                                     | Yes      | Restrict  | The issued PDF                                              |
+| `ReportCard.generatedByMembershipId → SchoolMembership`        | Yes      | Restrict  | Who generated it                                            |
+| `Announcement.authorMembershipId → SchoolMembership`           | Yes      | Restrict  | Authorship                                                  |
+| `Announcement.gradeLevelId / classId → target`                 | No       | Restrict  | Soft-deleted instead                                        |
+| `Notification.recipientMembershipId → SchoolMembership`        | Yes      | Cascade   | No history value                                            |
+| `FeeStructure.academicYearId → AcademicYear`                   | Yes      | Restrict  | Finance history                                             |
+| `FeeStructure.gradeLevelId → GradeLevel`                       | No       | Restrict  | Finance history                                             |
+| `FeeStructureItem.feeStructureId → FeeStructure`               | Yes      | Cascade   | Blocked anyway once an item is invoiced                     |
+| `Invoice.studentId → Student`                                  | Yes      | Restrict  | Finance history                                             |
+| `Invoice.academicYearId → AcademicYear`                        | Yes      | Restrict  | Finance history                                             |
+| `Invoice.createdByMembershipId → SchoolMembership`             | Yes      | Restrict  | Who created it                                              |
+| `InvoiceLine.invoiceId → Invoice`                              | Yes      | Cascade   | Only draft invoices can be deleted                          |
+| `InvoiceLine.feeStructureItemId → FeeStructureItem`            | No       | Restrict  | Finance history                                             |
+| `Adjustment.invoiceId → Invoice`                               | Yes      | Restrict  | Append-only                                                 |
+| `Payment.studentId → Student`                                  | Yes      | Restrict  | Append-only                                                 |
+| `Payment.payerGuardianId → Guardian`                           | No       | Restrict  | Append-only                                                 |
+| `Payment.recordedByMembershipId → SchoolMembership`            | Yes      | Restrict  | Who recorded it                                             |
+| `Payment.reversesPaymentId → Payment`                          | No       | Restrict  | Reversal history                                            |
+| `Payment.reconciliationBatchId → ReconciliationBatch`          | No       | Restrict  | Reconciliation history                                      |
+| `PaymentAllocation.paymentId → Payment`                        | Yes      | Restrict  | Append-only                                                 |
+| `PaymentAllocation.invoiceId → Invoice`                        | Yes      | Restrict  | Append-only                                                 |
+| `PaymentAllocation.reversesAllocationId → PaymentAllocation`   | No       | Restrict  | Reversal history                                            |
+| `ReconciliationBatch.closedByMembershipId → SchoolMembership`  | No       | Restrict  | Who closed it                                               |
+| `ExportJob.requestedByMembershipId → SchoolMembership`         | Yes      | Restrict  | Who asked for it                                            |
+| `ExportJob.fileId → File`                                      | No       | Restrict  | Files are soft-deleted                                      |
 
 ---
 
@@ -425,13 +441,18 @@ PostgreSQL does not index foreign keys automatically, so every foreign key gets 
 
 ### 7.1 School scope and sign-in
 
-| Table             | Index                                                                 | Purpose                             |
-| ----------------- | --------------------------------------------------------------------- | ----------------------------------- |
-| `User`            | unique `(email)`                                                      | Sign-in                             |
-| `Session`         | unique `(tokenHash)`, `(userId)`                                      | Session lookup, sign out everywhere |
-| `Membership`      | unique `(schoolId, userId, role)`, `(userId)`                         | Schools a user belongs to           |
-| `Student`         | unique `(schoolId, studentNumber)`, `(schoolId, lastName, firstName)` | Lookup and search                   |
-| `StudentGuardian` | `(schoolId, guardianId)`                                              | A parent's children                 |
+| Table              | Index                                                                 | Purpose                             |
+| ------------------ | --------------------------------------------------------------------- | ----------------------------------- |
+| `User`             | unique `(email)`                                                      | Sign-in                             |
+| `AuthSession`      | unique `(tokenHash)`, `(userId)`                                      | Session lookup, sign out everywhere |
+| `AuthToken`        | unique `(tokenHash)`, `(userId)`                                      | Token lookup                        |
+| `SchoolMembership` | unique `(schoolId, id)`, unique `(schoolId, userId)`, `(userId)`      | Schools a user belongs to           |
+| `Role`             | unique `(key)`                                                        | Role lookup by key                  |
+| `Permission`       | unique `(key)`                                                        | Permission lookup by key            |
+| `RolePermission`   | unique `(roleId, permissionId)`                                       | One row per matrix cell             |
+| `MembershipRole`   | unique `(schoolId, id)`, unique `(schoolId, membershipId, roleId)`    | Roles held by a membership          |
+| `Student`          | unique `(schoolId, studentNumber)`, `(schoolId, lastName, firstName)` | Lookup and search                   |
+| `StudentGuardian`  | `(schoolId, guardianId)`                                              | A parent's children                 |
 
 ### 7.2 Active year
 

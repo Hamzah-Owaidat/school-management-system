@@ -12,8 +12,8 @@ The platform hosts many schools, and one school must never see another school's 
 
 Use **one shared PostgreSQL database and schema**, with a `school_id` column on every tenant table.
 
-- **Global tables** (no `school_id`): `User`, `Session`, `School`.
-- **Membership:** `Membership(user_id, school_id, role)` links a user to a school. One person can hold different roles in different schools (for example, teacher in one school and parent in another).
+- **Global tables** (no `school_id`): `User`, `AuthSession`, `School`.
+- **Membership:** `SchoolMembership(user_id, school_id)` links a user to a school; the roles they hold in it are separate `MembershipRole` rows. One person can hold different roles in different schools (for example, teacher in one school and parent in another). _Updated in #12: `SchoolMembership`, `MembershipRole` and `AuthSession` replace the single-role `Membership` and `Session` from the original design._
 - **Tenant context:** after sign-in, the session stores the active `school_id`. The API reads it on every request; it never trusts a `school_id` sent by the browser.
 - **Enforcement in code:** repositories receive a tenant-scoped Prisma client (a Prisma client extension) that adds `school_id` to every read and write on tenant tables.
 - **Enforcement in the database:** tenant tables use composite unique keys and foreign keys that include `school_id`, so a row cannot point to another school's row.
