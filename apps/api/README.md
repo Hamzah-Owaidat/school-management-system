@@ -150,5 +150,65 @@ incorrect"`) in about the same time, since a real Argon2id verify always runs, a
   - `GET /me` (`requireAuth`) — `{ user, activeRole, roles }`, where `roles` lists every
     `MembershipRole` the user could switch to (an `ACTIVE` membership in an `ACTIVE`
     school). Never returns `passwordHash` or `tokenHash`.
+  - `POST /password/forgot` — `{ email }`. Always 202 with the same body, whether or not
+    the email exists, has a password or is suspended (no account enumeration, threat S1/S6)
+    — only an `ACTIVE` user with that email actually gets a token and an email.
+  - `POST /password/reset` — `{ token, password }`. A valid token hashes the new password
+    (Argon2id), marks the token used, verifies the email if it wasn't already (the link
+    proved the address), deletes every session the user has (ADR 0003), sends a "password
+    changed" notice, and returns 204. Any other token (wrong type, used, expired, unknown)
+    returns 400 `VALIDATION_FAILED` with `"This link is invalid or has expired"` — the same
+    message in every case.
+  - `POST /email/verify/request` (`requireAuth`) — sends a verification email only if the
+    signed-in user's address isn't verified yet; always 202.
+  - `POST /email/verify` — `{ token }`. Same success/failure shape as `/password/reset`.
 - Passwords are hashed with Argon2id (`@node-rs/argon2`, OWASP-recommended defaults) in
   `modules/auth/password.ts`.
+
+### Tokens
+
+`modules/auth/auth-tokens.ts`: a reset or verification token is 32 random bytes,
+base64url-encoded; only its SHA-256 hash is stored, in `AuthToken.tokenHash`. Single use
+(`usedAt`): `consumeAuthToken` finds the row by hash and type, checks it isn't used or
+expired, and marks it used, all in one transaction. A password reset token expires after 1
+hour; an email verification token after 24 hours. Creating a new token of a type deletes
+the user's earlier unused tokens of that same type first, so an old email's link stops
+working once a new one is requested.
+
+### Email
+
+`core/email/`: an `EmailSender` interface (`send({ to, subject, text, html })`) with three
+implementations — `SmtpEmailSender` (nodemailer; the real one, Mailpit locally),
+`ConsoleEmailSender` (development only; logs the full message, including any link, through
+the logger — refused in production by `core/config.ts`), and `InMemoryEmailSender` (records
+sent messages, for tests). `createEmailSender()` picks by `EMAIL_TRANSPORT` (`"smtp"` |
+`"console"`, default `"smtp"`); the chosen sender is passed into `createApp()` (dependency
+injection), so tests substitute the in-memory one. Templates live in `core/email/templates.ts`
+(password reset, email verification, password changed); links use `APP_URL`
+(`${APP_URL}/reset-password?token=...`, `${APP_URL}/verify-email?token=...` — the web pages
+are #19). Sending is fire-and-forget in the request path (`void sender.send(...).catch(...)`)
+so a slow or failed send never delays or fails the response; only the failure is logged,
+never the message itself.
+
+### Rate limiting
+
+`core/rate-limit.ts`, built on `express-rate-limit`, with its default in-memory store — fine
+for one API instance; running more than one will need a shared store (e.g. Redis), or each
+instance enforces its own independent limit. Limits (`RateLimitConfig`, passed into
+`createApp()` so tests can use small ones):
+
+| Rule                          | Limit                                              |
+| ----------------------------- | -------------------------------------------------- |
+| Login                         | 10 / 15 min per IP + email, and 50 / 15 min per IP |
+| Forgot password               | 5 / hour per email, and 20 / hour per IP           |
+| Reset password / verify email | 10 / 15 min per IP                                 |
+| Request verification email    | 5 / hour per user                                  |
+
+Over the limit: 429 `RATE_LIMITED` in the standard error shape, with a `Retry-After` header.
+
+### Trust proxy
+
+`TRUST_PROXY` (`core/config.ts`) is the number of proxy hops in front of the API, applied
+via `app.set("trust proxy", ...)` so `req.ip` (used by the rate limiters) is the real
+client's address, not the proxy's. `0` in development (no proxy); `1` in staging and
+production (Caddy sits in front).

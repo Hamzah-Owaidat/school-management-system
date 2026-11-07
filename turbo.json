@@ -10,9 +10,14 @@
     "POSTGRES_PORT",
     "DATABASE_URL",
     "LOG_LEVEL",
+    "EMAIL_TRANSPORT",
     "SMTP_HOST",
     "SMTP_PORT",
-    "MAIL_FROM"
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "MAIL_FROM",
+    "APP_URL",
+    "TRUST_PROXY"
   ],
   "tasks": {
     "generate": {

@@ -23,6 +23,9 @@ pnpm db:seed            # add a demo school and demo users (synthetic data)
 pnpm dev                # web on http://localhost:3000, API on http://localhost:4000
 ```
 
+Password reset and email verification links are sent by email; locally they're caught by
+Mailpit at [http://localhost:8025](http://localhost:8025) — nothing ever leaves your machine.
+
 ### Demo users
 
 Local-only accounts created by `pnpm db:seed` (never created when `NODE_ENV=production`),
