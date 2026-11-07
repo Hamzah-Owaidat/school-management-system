@@ -7,11 +7,12 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "generate": "prisma generate",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
-    "typecheck": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && vitest run",
-    "test:integration": "prisma generate && vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "prisma db seed",
