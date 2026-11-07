@@ -7,6 +7,19 @@ const EnvSchema = z.object({
   // `pnpm build`/`pnpm test` must work with no .env and no database (see packages/db),
   // so a placeholder keeps config loading from failing when DATABASE_URL isn't set.
   DATABASE_URL: z.string().min(1).default("postgresql://localhost:5432/placeholder"),
+  // "console" (dev only) logs emails through the logger instead of sending them; refused
+  // in production below.
+  EMAIL_TRANSPORT: z.enum(["smtp", "console"]).default("smtp"),
+  SMTP_HOST: z.string().min(1).default("localhost"),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  SMTP_USER: z.string().default(""),
+  SMTP_PASSWORD: z.string().default(""),
+  MAIL_FROM: z.email().default("no-reply@school-management-system.local"),
+  // The web app's public base URL; reset/verification email links are built from it.
+  APP_URL: z.url().default("http://localhost:3000"),
+  // Number of proxy hops in front of the API (Express "trust proxy"), so req.ip is the
+  // real client, not the proxy's address. 0 in development; 1 in staging/production (Caddy).
+  TRUST_PROXY: z.coerce.number().int().nonnegative().default(0),
 });
 
 export type Config = z.infer<typeof EnvSchema>;
@@ -25,6 +38,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // database; a production process must always be told the real database.
   if (result.data.NODE_ENV === "production" && !env.DATABASE_URL) {
     throw new Error("Invalid environment configuration:\n  DATABASE_URL: Required in production");
+  }
+
+  // The console transport logs full email content (including reset/verification links) —
+  // fine for local development, never acceptable in production.
+  if (result.data.NODE_ENV === "production" && result.data.EMAIL_TRANSPORT === "console") {
+    throw new Error(
+      'Invalid environment configuration:\n  EMAIL_TRANSPORT: Cannot be "console" in production',
+    );
   }
 
   return result.data;

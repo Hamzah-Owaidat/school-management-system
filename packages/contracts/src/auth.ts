@@ -9,6 +9,36 @@ export const LoginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
+/** At least 10 and at most 128 characters; no composition rules. Reused by password reset and invitations (#25). */
+export const PasswordSchema = z.string().min(10).max(128);
+
+/** A generic body for endpoints that must not reveal whether the action actually did anything (no account enumeration). */
+export const MessageResponseSchema = z.object({ message: z.string() });
+
+export type MessageResponse = z.infer<typeof MessageResponseSchema>;
+
+/** POST /api/v1/auth/password/forgot request body. */
+export const ForgotPasswordRequestSchema = z.object({
+  email: z.email(),
+});
+
+export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequestSchema>;
+
+/** POST /api/v1/auth/password/reset request body. */
+export const ResetPasswordRequestSchema = z.object({
+  token: z.string().min(1),
+  password: PasswordSchema,
+});
+
+export type ResetPasswordRequest = z.infer<typeof ResetPasswordRequestSchema>;
+
+/** POST /api/v1/auth/email/verify request body. */
+export const VerifyEmailRequestSchema = z.object({
+  token: z.string().min(1),
+});
+
+export type VerifyEmailRequest = z.infer<typeof VerifyEmailRequestSchema>;
+
 export const AuthUserSchema = z.object({
   id: z.uuid(),
   email: z.email(),

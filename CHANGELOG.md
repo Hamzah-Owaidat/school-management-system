@@ -8,6 +8,7 @@ All notable changes to this project are listed here. Format: Keep a Changelog. V
 
 - Identity and tenancy schema: users, sessions, school memberships, roles and permissions seeded from `packages/contracts`, and an audit log (#12)
 - Login, logout and secure cookie sessions, with Argon2id password hashing and local-only demo users (#13)
+- Password reset, email verification and rate limiting on sign-in and recovery endpoints (#14)
 
 ### Fixed
 

@@ -51,4 +51,47 @@ describe("loadConfig", () => {
     });
     expect(config.DATABASE_URL).toBe("postgresql://real-host:5432/sms");
   });
+
+  it("defaults EMAIL_TRANSPORT to smtp", () => {
+    expect(loadConfig({}).EMAIL_TRANSPORT).toBe("smtp");
+  });
+
+  it("accepts EMAIL_TRANSPORT=console outside production", () => {
+    const config = loadConfig({ NODE_ENV: "development", EMAIL_TRANSPORT: "console" });
+    expect(config.EMAIL_TRANSPORT).toBe("console");
+  });
+
+  it("refuses EMAIL_TRANSPORT=console in production", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://real-host:5432/sms",
+        EMAIL_TRANSPORT: "console",
+      }),
+    ).toThrow(/EMAIL_TRANSPORT/);
+  });
+
+  it("accepts EMAIL_TRANSPORT=smtp in production", () => {
+    const config = loadConfig({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgresql://real-host:5432/sms",
+      EMAIL_TRANSPORT: "smtp",
+    });
+    expect(config.EMAIL_TRANSPORT).toBe("smtp");
+  });
+
+  it("applies email and app URL defaults", () => {
+    const config = loadConfig({});
+    expect(config.SMTP_HOST).toBe("localhost");
+    expect(config.SMTP_PORT).toBe(1025);
+    expect(config.SMTP_USER).toBe("");
+    expect(config.SMTP_PASSWORD).toBe("");
+    expect(config.MAIL_FROM).toBe("no-reply@school-management-system.local");
+    expect(config.APP_URL).toBe("http://localhost:3000");
+    expect(config.TRUST_PROXY).toBe(0);
+  });
+
+  it("parses TRUST_PROXY as a number", () => {
+    expect(loadConfig({ TRUST_PROXY: "1" }).TRUST_PROXY).toBe(1);
+  });
 });

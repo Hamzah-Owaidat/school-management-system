@@ -19,7 +19,9 @@
     "@sms/db": "workspace:*",
     "cookie": "^1.0.2",
     "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
     "helmet": "^8.3.0",
+    "nodemailer": "^10.3.1",
     "pino": "^10.4.0",
     "pino-http": "^11.0.0",
     "zod": "^4.6.7"
