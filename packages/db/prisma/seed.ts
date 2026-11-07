@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/client.js";
-import { seedDemoSchool } from "../src/seed.js";
+import { seedDemoSchool, seedRolesAndPermissions } from "../src/seed.js";
 
 async function main(): Promise<void> {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -8,6 +8,7 @@ async function main(): Promise<void> {
 
   try {
     await seedDemoSchool(prisma);
+    await seedRolesAndPermissions(prisma);
   } finally {
     await prisma.$disconnect();
   }

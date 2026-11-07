@@ -15,26 +15,27 @@ Every open question from the SRS and the design documents has an answer or an ow
 
 ## 1. Summary
 
-| ID   | Topic                        | Answer                                                                    | Owner                                                           | Status                                    |
-| ---- | ---------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------- |
-| D-01 | Finance model                | Invoices from fee structures; record offline payments; no online payments | Hamzah                                                          | Decided                                   |
-| D-02 | Currency                     | USD and LBP; one currency per invoice; no conversion                      | Hamzah                                                          | Decided                                   |
-| D-03 | Parent identity              | One account per parent email, linked to children by the school            | Hamzah                                                          | Decided                                   |
-| D-04 | Grading                      | Each school chooses: out of 20, out of 100, or letters                    | Hamzah                                                          | Decided                                   |
-| D-05 | Attendance                   | Recorded every period by the lesson's teacher                             | Hamzah                                                          | Decided                                   |
-| D-06 | Report cards                 | Yes in v1: a PDF per student per term                                     | Hamzah                                                          | Decided                                   |
-| D-07 | Student names                | Latin name required; Arabic name optional                                 | Hamzah (confirm with the school)                                | Proposed                                  |
-| D-08 | Digits in Arabic             | Western digits (0–9) in every language                                    | Hamzah (confirm with the school)                                | Proposed                                  |
-| D-09 | Notification channels        | In-app and email; SMS and WhatsApp later                                  | Hamzah                                                          | Decided                                   |
-| D-10 | Email provider               | Not chosen yet                                                            | Hamzah                                                          | Open, before #14 (M2)                     |
-| D-11 | Hosting region               | Local until approval, then DigitalOcean Frankfurt (FRA1)                  | Hamzah                                                          | Decided                                   |
-| D-12 | Data retention               | Periods in database design section 8.2                                    | Hamzah (confirm finance retention with the school's accountant) | Proposed                                  |
-| D-13 | Upload virus scanning        | Not in v1                                                                 | Hamzah                                                          | Decided; revisit before the second school |
-| D-14 | Row-level security           | Not in v1                                                                 | Hamzah                                                          | Decided; revisit before the second school |
-| D-15 | Out-of-scope list            | SRS section 6                                                             | Hamzah (confirm with the school)                                | Proposed                                  |
-| D-16 | Staging before approval      | Local production build stands in for staging                              | Hamzah                                                          | Decided                                   |
-| D-17 | Finance separation of duties | Admin reads finance; only the accountant records or reverses payments     | Hamzah                                                          | Decided                                   |
-| D-18 | Platform operator access     | No access to school data inside the app in v1                             | Hamzah                                                          | Decided                                   |
+| ID   | Topic                        | Answer                                                                                         | Owner                                                           | Status                                    |
+| ---- | ---------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------- |
+| D-01 | Finance model                | Invoices from fee structures; record offline payments; no online payments                      | Hamzah                                                          | Decided                                   |
+| D-02 | Currency                     | USD and LBP; one currency per invoice; no conversion                                           | Hamzah                                                          | Decided                                   |
+| D-03 | Parent identity              | One account per parent email, linked to children by the school                                 | Hamzah                                                          | Decided                                   |
+| D-04 | Grading                      | Each school chooses: out of 20, out of 100, or letters                                         | Hamzah                                                          | Decided                                   |
+| D-05 | Attendance                   | Recorded every period by the lesson's teacher                                                  | Hamzah                                                          | Decided                                   |
+| D-06 | Report cards                 | Yes in v1: a PDF per student per term                                                          | Hamzah                                                          | Decided                                   |
+| D-07 | Student names                | Latin name required; Arabic name optional                                                      | Hamzah (confirm with the school)                                | Proposed                                  |
+| D-08 | Digits in Arabic             | Western digits (0–9) in every language                                                         | Hamzah (confirm with the school)                                | Proposed                                  |
+| D-09 | Notification channels        | In-app and email; SMS and WhatsApp later                                                       | Hamzah                                                          | Decided                                   |
+| D-10 | Email provider               | Not chosen yet                                                                                 | Hamzah                                                          | Open, before #14 (M2)                     |
+| D-11 | Hosting region               | Local until approval, then DigitalOcean Frankfurt (FRA1)                                       | Hamzah                                                          | Decided                                   |
+| D-12 | Data retention               | Periods in database design section 8.2                                                         | Hamzah (confirm finance retention with the school's accountant) | Proposed                                  |
+| D-13 | Upload virus scanning        | Not in v1                                                                                      | Hamzah                                                          | Decided; revisit before the second school |
+| D-14 | Row-level security           | Not in v1                                                                                      | Hamzah                                                          | Decided; revisit before the second school |
+| D-15 | Out-of-scope list            | SRS section 6                                                                                  | Hamzah (confirm with the school)                                | Proposed                                  |
+| D-16 | Staging before approval      | Local production build stands in for staging                                                   | Hamzah                                                          | Decided                                   |
+| D-17 | Finance separation of duties | Admin reads finance; only the accountant records or reverses payments                          | Hamzah                                                          | Decided                                   |
+| D-18 | Platform operator access     | No access to school data inside the app in v1                                                  | Hamzah                                                          | Decided                                   |
+| D-19 | Roles and permissions        | Tables seeded from packages/contracts; a membership can hold several roles, a session uses one | Hamzah                                                          | Decided                                   |
 
 ---
 
@@ -145,3 +146,9 @@ Every open question from the SRS and the design documents has an answer or an ow
 
 - In v1 the platform operator manages schools only and can't open a school's data inside the app.
 - Support work happens with the school admin. Any direct database access is limited to the owner.
+
+### D-19 Roles and permissions are tables seeded from packages/contracts; a membership can hold several roles, a session uses one
+
+- Roles and permissions are system-wide tables (`Role`, `Permission`, `RolePermission`) in v1, seeded from the role matrix in `packages/contracts` (database design section 4.1). Per-school custom roles are for later.
+- A `SchoolMembership` is one row per person per school. The roles they hold in it are separate `MembershipRole` rows, so a person who is both admin and accountant (D-17) has two.
+- A session uses exactly one active `MembershipRole`; permissions from a user's other roles are never merged (permissions.md section 1, rule 3).

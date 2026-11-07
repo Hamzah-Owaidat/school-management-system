@@ -18,6 +18,47 @@ enum Locale {
   fr
 }
 
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// Where a role lives (docs/permissions.md section 4): PLATFORM roles are never attached
+/// through MembershipRole (D-18); only SCHOOL roles are.
+enum RoleScope {
+  PLATFORM
+  SCHOOL
+}
+
+/// The scope of a role's grant on a permission (docs/permissions.md section 2).
+enum PermissionScope {
+  ALL_SCHOOLS
+  SCHOOL
+  OWN_CLASSES
+  OWN_LESSONS
+  SELF
+  CHILDREN
+  TARGETED
+}
+
+/// A narrowing condition on top of a scope (e.g. "Self, published").
+enum PermissionCondition {
+  PUBLISHED_ONLY
+  UNLOCKED_TERMS_ONLY
+  FINANCE_ONLY
+  FEEDBACK_ONLY
+}
+
 /// Tenant root (ADR 0002): one row per school, everything else scopes to it.
 model School {
   id              String       @id @default(uuid()) @db.Uuid
@@ -32,5 +73,180 @@ model School {
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
+  memberships     SchoolMembership[]
+  membershipRoles MembershipRole[]
+
   @@map("schools")
+}
+
+/// Global: a person's account on the platform. The platform operator is a flag here
+/// (D-18), never a membership.
+model User {
+  id                 String     @id @default(uuid()) @db.Uuid
+  email              String     @unique
+  passwordHash       String?    @map("password_hash")
+  emailVerifiedAt    DateTime?  @map("email_verified_at")
+  status             UserStatus @default(ACTIVE)
+  isPlatformOperator Boolean    @default(false) @map("is_platform_operator")
+  locale             Locale?
+  lastLoginAt        DateTime?  @map("last_login_at")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  authSessions AuthSession[]
+  authTokens   AuthToken[]
+  memberships  SchoolMembership[]
+
+  @@map("users")
+}
+
+/// Global: a server-side session (ADR 0003). Uses exactly one active MembershipRole at a
+/// time; permissions from other roles the user holds are never merged (permissions.md
+/// section 1, rule 3).
+model AuthSession {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @db.Uuid @map("user_id")
+  tokenHash              String    @unique @map("token_hash")
+  activeMembershipRoleId String?   @db.Uuid @map("active_membership_role_id")
+  ip                     String?
+  userAgent              String?   @map("user_agent")
+  lastSeenAt             DateTime  @map("last_seen_at")
+  idleExpiresAt          DateTime  @map("idle_expires_at")
+  absoluteExpiresAt      DateTime  @map("absolute_expires_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeMembershipRole MembershipRole? @relation(fields: [activeMembershipRoleId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+/// Global: a single-use email token (verification or password reset).
+model AuthToken {
+  id        String        @id @default(uuid()) @db.Uuid
+  userId    String        @db.Uuid @map("user_id")
+  type      AuthTokenType
+  tokenHash String        @unique @map("token_hash")
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_tokens")
+}
+
+/// Tenant: one row per person per school. The roles they hold in that school are
+/// MembershipRole rows (a person who is admin and accountant has two).
+model SchoolMembership {
+  id        String           @id @default(uuid()) @db.Uuid
+  schoolId  String           @db.Uuid @map("school_id")
+  userId    String           @db.Uuid @map("user_id")
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  school          School           @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  membershipRoles MembershipRole[]
+
+  @@unique([schoolId, id])
+  @@unique([schoolId, userId])
+  @@index([userId])
+  @@map("school_memberships")
+}
+
+/// Global: a role, seeded from packages/contracts (docs/permissions.md section 4). System-wide
+/// in v1; per-school custom roles are for later.
+model Role {
+  id        String    @id @default(uuid()) @db.Uuid
+  key       String    @unique
+  name      String
+  scope     RoleScope
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+  membershipRoles MembershipRole[]
+
+  @@map("roles")
+}
+
+/// Global: a permission key, seeded from packages/contracts (docs/permissions.md section 3).
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+/// Global: one row per (role, permission) cell of the role matrix (docs/permissions.md
+/// section 4).
+model RolePermission {
+  id           String               @id @default(uuid()) @db.Uuid
+  roleId       String               @db.Uuid @map("role_id")
+  permissionId String               @db.Uuid @map("permission_id")
+  scope        PermissionScope
+  condition    PermissionCondition?
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+/// Tenant: one role attached to a membership. The composite relation to SchoolMembership
+/// means a role can never be attached to another school's membership.
+model MembershipRole {
+  id           String   @id @default(uuid()) @db.Uuid
+  schoolId     String   @db.Uuid @map("school_id")
+  membershipId String   @db.Uuid @map("membership_id")
+  roleId       String   @db.Uuid @map("role_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  school     School           @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  membership SchoolMembership @relation(fields: [schoolId, membershipId], references: [schoolId, id], onDelete: Restrict)
+  role       Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  authSessions AuthSession[]
+
+  @@unique([schoolId, id])
+  @@unique([schoolId, membershipId, roleId])
+  @@map("membership_roles")
+}
+
+/// Tenant or platform (schoolId is optional): append-only, no foreign keys on purpose
+/// (database-design section 4.10), so entries survive when the rows they describe are purged.
+model AuditLog {
+  id                    String   @id @default(uuid()) @db.Uuid
+  schoolId              String?  @db.Uuid @map("school_id")
+  actorUserId           String?  @db.Uuid @map("actor_user_id")
+  actorMembershipRoleId String?  @db.Uuid @map("actor_membership_role_id")
+  requestId             String?  @map("request_id")
+  action                String
+  entityType            String   @map("entity_type")
+  entityId              String   @map("entity_id")
+  before                Json?
+  after                 Json?
+  reason                String?
+  ip                    String?
+  userAgent             String?  @map("user_agent")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, entityType, entityId])
+  @@map("audit_logs")
 }

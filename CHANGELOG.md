@@ -4,6 +4,10 @@ All notable changes to this project are listed here. Format: Keep a Changelog. V
 
 ## [Unreleased]
 
+### Added
+
+- Identity and tenancy schema: users, sessions, school memberships, roles and permissions seeded from `packages/contracts`, and an audit log (#12)
+
 ### Fixed
 
 - Production stack containers (`postgres`, `migrate`, `api`) now read `DATABASE_URL`, `POSTGRES_*`, `NODE_ENV`, `API_PORT`, `LOG_LEVEL`, `SMTP_*` and `MAIL_FROM` only from the selected env file, never from a variable already exported in the shell running Compose

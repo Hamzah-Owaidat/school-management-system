@@ -12,8 +12,10 @@ Users include children and parents, and the data includes grades and payments. A
 
 Use **server-side sessions** stored in PostgreSQL, identified by a cookie.
 
+_Updated in #12: the `Session` table from the original design is now `AuthSession`, keyed to one active `MembershipRole` at a time._
+
 - **Passwords:** hashed with Argon2id.
-- **Session cookie:** a random ID (at least 128 bits), `httpOnly`, `Secure`, `SameSite=Lax`, path `/`. Only a hash of the ID is stored in the `Session` table.
+- **Session cookie:** a random ID (at least 128 bits), `httpOnly`, `Secure`, `SameSite=Lax`, path `/`. Only a hash of the ID is stored in the `AuthSession` table.
 - **Lifetime:** a session expires after 7 days without activity and after 30 days at most.
 - **Rotation:** a new session ID is issued at sign-in and when the active school or role changes.
 - **Revocation:** sign-out, password reset, user suspension and school suspension delete the affected sessions.
