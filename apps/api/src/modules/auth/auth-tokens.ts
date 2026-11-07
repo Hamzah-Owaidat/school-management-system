@@ -1,5 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import { getPrismaClient, type PrismaClient } from "@sms/db";
+import { getPrismaClient, type Prisma, type PrismaClient } from "@sms/db";
+
+/** Accepts either the real client or an interactive transaction's client, so callers can compose these into one transaction. */
+type Db = PrismaClient | Prisma.TransactionClient;
 
 const TOKEN_BYTES = 32;
 
@@ -53,26 +56,31 @@ export interface ConsumedAuthToken {
 }
 
 /**
- * Looks up a token by its hash and type, checks it hasn't been used or expired, and marks
- * it used — all in one transaction, so a token can never be consumed twice (threat S6).
- * Returns null for any invalid token (not found, wrong type, already used, expired).
+ * Atomically marks the token used, only if it matches this type and isn't already used or
+ * expired: a single conditional UPDATE (`WHERE tokenHash = ... AND type = ... AND usedAt IS
+ * NULL AND expiresAt > now`), so two concurrent requests for the same token can never both
+ * succeed — exactly one row changes (threat S6). Returns null for any invalid token (not
+ * found, wrong type, already used, expired, or lost the race to another request).
+ *
+ * Pass an interactive transaction's client to compose this with other writes (see
+ * auth.service.ts's resetPassword/verifyEmail) so the token stays unused if a later step
+ * fails.
  */
 export async function consumeAuthToken(
   token: string,
   type: AuthTokenType,
-  prisma: PrismaClient = getPrismaClient(),
+  prisma: Db = getPrismaClient(),
 ): Promise<ConsumedAuthToken | null> {
   const tokenHash = hashAuthToken(token);
+  const now = new Date();
 
-  return prisma.$transaction(async (tx) => {
-    const row = await tx.authToken.findUnique({ where: { tokenHash } });
-    const now = new Date();
-
-    if (!row || row.type !== type || row.usedAt || row.expiresAt < now) {
-      return null;
-    }
-
-    await tx.authToken.update({ where: { id: row.id }, data: { usedAt: now } });
-    return { userId: row.userId };
+  const result = await prisma.authToken.updateMany({
+    where: { tokenHash, type, usedAt: null, expiresAt: { gt: now } },
+    data: { usedAt: now },
   });
+
+  if (result.count !== 1) return null;
+
+  const row = await prisma.authToken.findUnique({ where: { tokenHash } });
+  return row ? { userId: row.userId } : null;
 }

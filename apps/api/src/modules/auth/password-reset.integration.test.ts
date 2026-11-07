@@ -265,6 +265,66 @@ describe("Email verification (integration)", () => {
   });
 });
 
+describe("Concurrency (integration)", () => {
+  const emailSender = createInMemoryEmailSender();
+  const app = createApp(checkDatabaseConnection, emailSender, DEFAULT_RATE_LIMIT_CONFIG);
+
+  it("lets exactly one of two parallel resets with the same token succeed", async () => {
+    const user = await createTestUser({ password: "original-password-123" });
+    await request(app).post("/api/v1/auth/password/forgot").send({ email: user.email });
+    const token = extractToken(emailSender.messages.at(-1)?.text ?? "");
+
+    const passwordA = "password-from-request-a";
+    const passwordB = "password-from-request-b";
+
+    const [responseA, responseB] = await Promise.all([
+      request(app).post("/api/v1/auth/password/reset").send({ token, password: passwordA }),
+      request(app).post("/api/v1/auth/password/reset").send({ token, password: passwordB }),
+    ]);
+
+    expect([responseA.status, responseB.status].sort()).toEqual([204, 400]);
+
+    const winningPassword = responseA.status === 204 ? passwordA : passwordB;
+    const losingPassword = responseA.status === 204 ? passwordB : passwordA;
+    const failedResponse = responseA.status === 400 ? responseA : responseB;
+    expect(failedResponse.body.error.message).toBe(INVALID_TOKEN_MESSAGE);
+
+    const winningLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: user.email, password: winningPassword });
+    expect(winningLogin.status).toBe(200);
+
+    const losingLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: user.email, password: losingPassword });
+    expect(losingLogin.status).toBe(401);
+  });
+
+  it("lets exactly one of two parallel email verifications with the same token succeed", async () => {
+    const password = "correct-password-123";
+    const user = await createTestUser({ password });
+    const login = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: user.email, password });
+    const cookie = cookieNameValue(login);
+
+    await request(app).post("/api/v1/auth/email/verify/request").set("Cookie", cookie);
+    const token = extractToken(emailSender.messages.at(-1)?.text ?? "");
+
+    const [responseA, responseB] = await Promise.all([
+      request(app).post("/api/v1/auth/email/verify").send({ token }),
+      request(app).post("/api/v1/auth/email/verify").send({ token }),
+    ]);
+
+    expect([responseA.status, responseB.status].sort()).toEqual([204, 400]);
+    const failedResponse = responseA.status === 400 ? responseA : responseB;
+    expect(failedResponse.body.error.message).toBe(INVALID_TOKEN_MESSAGE);
+
+    const dbUser = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(dbUser.emailVerifiedAt).not.toBeNull();
+  });
+});
+
 describe("Rate limiting (integration)", () => {
   function appWithTightLimits(
     emailSender: InMemoryEmailSender,

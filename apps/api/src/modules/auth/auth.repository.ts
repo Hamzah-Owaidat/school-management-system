@@ -1,5 +1,8 @@
 import { getPrismaClient, type PrismaClient, type Prisma } from "@sms/db";
 
+/** Accepts either the real client or an interactive transaction's client, so callers can compose these into one transaction. */
+type Db = PrismaClient | Prisma.TransactionClient;
+
 const SELECTABLE_MEMBERSHIP_ROLE_INCLUDE = {
   role: true,
   school: true,
@@ -65,7 +68,7 @@ export async function completePasswordReset(
   userId: string,
   passwordHash: string,
   at: Date,
-  prisma: PrismaClient = getPrismaClient(),
+  prisma: Db = getPrismaClient(),
 ) {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
   return prisma.user.update({
@@ -74,15 +77,11 @@ export async function completePasswordReset(
   });
 }
 
-export function markEmailVerified(
-  userId: string,
-  at: Date,
-  prisma: PrismaClient = getPrismaClient(),
-) {
+export function markEmailVerified(userId: string, at: Date, prisma: Db = getPrismaClient()) {
   return prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: at } });
 }
 
 /** Revokes every session of this user (ADR 0003: a password reset deletes all sessions). */
-export function deleteAllSessionsForUser(userId: string, prisma: PrismaClient = getPrismaClient()) {
+export function deleteAllSessionsForUser(userId: string, prisma: Db = getPrismaClient()) {
   return prisma.authSession.deleteMany({ where: { userId } });
 }

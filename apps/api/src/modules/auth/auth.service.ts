@@ -1,4 +1,5 @@
 import type { MeResponse, RoleKey } from "@sms/contracts";
+import { getPrismaClient } from "@sms/db";
 import { config, SESSION_ABSOLUTE_TTL_MS, SESSION_IDLE_TTL_MS } from "../../core/config.js";
 import {
   emailVerificationEmailContent,
@@ -169,22 +170,30 @@ export async function forgotPassword(email: string, emailSender: EmailSender): P
 
 /**
  * A valid token hashes the new password, consumes the token, verifies the email (the link
- * proved the address), revokes every session (ADR 0003), and sends a notice. Any other
- * token (wrong type, used, expired, unknown) throws the same generic error.
+ * proved the address), and revokes every session (ADR 0003) — all in one transaction, so a
+ * failure partway through leaves the token unused and nothing else changed. The "password
+ * changed" notice is only sent after the transaction commits. Any other token (wrong type,
+ * used, expired, unknown, or racing another request for the same token) throws the same
+ * generic error.
  */
 export async function resetPassword(
   token: string,
   password: string,
   emailSender: EmailSender,
 ): Promise<void> {
-  const consumed = await consumeAuthToken(token, "PASSWORD_RESET");
-  if (!consumed) throw validationFailed(INVALID_TOKEN_MESSAGE);
-
   const passwordHash = await hashPassword(password);
   const now = new Date();
 
-  const user = await completePasswordReset(consumed.userId, passwordHash, now);
-  await deleteAllSessionsForUser(consumed.userId);
+  const user = await getPrismaClient().$transaction(async (tx) => {
+    const consumed = await consumeAuthToken(token, "PASSWORD_RESET", tx);
+    if (!consumed) return null;
+
+    const updated = await completePasswordReset(consumed.userId, passwordHash, now, tx);
+    await deleteAllSessionsForUser(consumed.userId, tx);
+    return updated;
+  });
+
+  if (!user) throw validationFailed(INVALID_TOKEN_MESSAGE);
 
   sendEmailWithoutBlocking(emailSender, { to: user.email, ...passwordChangedEmailContent() });
 }
@@ -202,10 +211,21 @@ export async function requestEmailVerification(
   sendEmailWithoutBlocking(emailSender, { to: user.email, ...emailVerificationEmailContent(link) });
 }
 
-/** A valid token verifies the email. Any other token throws the same generic error as a password reset. */
+/**
+ * A valid token consumes it and verifies the email in one transaction. Any other token
+ * (wrong type, used, expired, unknown, or racing another request for the same token) throws
+ * the same generic error as a password reset.
+ */
 export async function verifyEmail(token: string): Promise<void> {
-  const consumed = await consumeAuthToken(token, "EMAIL_VERIFICATION");
-  if (!consumed) throw validationFailed(INVALID_TOKEN_MESSAGE);
+  const now = new Date();
 
-  await markEmailVerified(consumed.userId, new Date());
+  const consumed = await getPrismaClient().$transaction(async (tx) => {
+    const result = await consumeAuthToken(token, "EMAIL_VERIFICATION", tx);
+    if (!result) return null;
+
+    await markEmailVerified(result.userId, now, tx);
+    return result;
+  });
+
+  if (!consumed) throw validationFailed(INVALID_TOKEN_MESSAGE);
 }
