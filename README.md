@@ -19,9 +19,24 @@ cp .env.example .env   # local-only defaults; edit if a port is already taken
 pnpm install            # install all workspaces
 pnpm db:up              # start PostgreSQL and Mailpit
 pnpm db:migrate         # create the database schema
-pnpm db:seed            # add a demo school (synthetic data)
+pnpm db:seed            # add a demo school and demo users (synthetic data)
 pnpm dev                # web on http://localhost:3000, API on http://localhost:4000
 ```
+
+### Demo users
+
+Local-only accounts created by `pnpm db:seed` (never created when `NODE_ENV=production`),
+all sharing one password set by `SEED_DEMO_PASSWORD` (default `demo-password-123`):
+
+| Email                        | Role(s) at Demo School            |
+| ---------------------------- | --------------------------------- |
+| `operator@demo.test`         | Platform operator (no membership) |
+| `admin@demo.test`            | School admin                      |
+| `teacher@demo.test`          | Teacher                           |
+| `accountant@demo.test`       | Accountant                        |
+| `student@demo.test`          | Student                           |
+| `parent@demo.test`           | Parent                            |
+| `admin-accountant@demo.test` | School admin and accountant       |
 
 | Port   | Service        |
 | ------ | -------------- |

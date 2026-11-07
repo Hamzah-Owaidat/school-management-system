@@ -4,7 +4,7 @@ import { PrismaClient } from "./generated/client.js";
 export type { PrismaClient } from "./generated/client.js";
 /** Re-exported so callers (e.g. the API's error handler) can recognize known Prisma errors without reaching into generated internals. */
 export { Prisma } from "./generated/client.js";
-export { seedDemoSchool, seedRolesAndPermissions } from "./seed.js";
+export { seedDemoSchool, seedDemoUsers, seedRolesAndPermissions } from "./seed.js";
 
 let client: PrismaClient | undefined;
 

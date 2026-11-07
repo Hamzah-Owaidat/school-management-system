@@ -5,6 +5,7 @@ import { errorHandler } from "./core/error-handler.js";
 import { httpLogger } from "./core/logger.js";
 import { notFoundHandler } from "./core/not-found-handler.js";
 import { requestId } from "./core/request-id.js";
+import { createSessionMiddleware } from "./core/session.js";
 import { createApiRouter } from "./modules/index.js";
 import type { DatabaseCheck } from "./modules/health/health.service.js";
 
@@ -21,6 +22,7 @@ export function createApp(checkDatabase: DatabaseCheck = checkDatabaseConnection
   app.use(httpLogger);
   app.use(helmet());
   app.use(express.json({ limit: JSON_BODY_LIMIT }));
+  app.use(createSessionMiddleware());
 
   app.use("/api/v1", createApiRouter({ checkDatabase }));
 

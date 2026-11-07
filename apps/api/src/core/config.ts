@@ -31,3 +31,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 }
 
 export const config = loadConfig();
+
+/** A session expires this long after its last activity (ADR 0003: 7 days). */
+export const SESSION_IDLE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** A session expires this long after sign-in at the latest, regardless of activity (ADR 0003: 30 days). */
+export const SESSION_ABSOLUTE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** The session middleware only extends idleExpiresAt/lastSeenAt this often, so most requests skip a write. */
+export const SESSION_ACTIVITY_EXTEND_THRESHOLD_MS = 5 * 60 * 1000;
