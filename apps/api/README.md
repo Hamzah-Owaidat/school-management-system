@@ -94,3 +94,61 @@ Every request gets an ID on `req.id`: an incoming `X-Request-Id` header is reuse
 safe string (letters, digits, dashes, at most 128 characters), otherwise one is generated.
 It's returned on the `X-Request-Id` response header and inside every error body, and used
 to correlate a client-reported problem with the matching log line.
+
+## Authentication
+
+Server-side sessions identified by a cookie (ADR 0003), implemented in `core/session.ts`,
+`core/session-cookie.ts`, `core/session-token.ts` and `modules/auth/`.
+
+- **Cookie:** `__Host-sms_session` in production, `sms_session` in development and test —
+  always `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` in production. It carries a 32
+  random byte, base64url-encoded token; only its SHA-256 hash is stored, in
+  `AuthSession.tokenHash`. The raw token is never logged (`core/logger.ts` redacts the
+  `Cookie` and `Set-Cookie` headers) or written anywhere but the cookie itself.
+- **Lifetimes:** a session expires 7 days after its last activity (`idleExpiresAt`) and 30
+  days after sign-in at the latest (`absoluteExpiresAt`), regardless of activity — both are
+  constants in `core/config.ts`.
+- **`createSessionMiddleware()`** (mounted in `app.ts`, before the API router) runs on every
+  request: it reads the cookie, loads the `AuthSession` with its user and active
+  `MembershipRole`, and either attaches `req.auth` or leaves the request anonymous. An
+  expired session, a missing row or a non-`ACTIVE` user all delete the session row (if any)
+  and clear the cookie; none of that is treated as an error. Otherwise it extends
+  `idleExpiresAt`/`lastSeenAt`, but at most once every 5 minutes, so routine requests skip a
+  database write.
+- **`req.auth`** (`core/session.ts`), set only when there is a valid session:
+  ```ts
+  interface AuthContext {
+    sessionId: string;
+    user: {
+      id: string;
+      email: string;
+      locale: "ar" | "en" | "fr" | null;
+      isPlatformOperator: boolean;
+    };
+    activeRole: {
+      membershipRoleId: string;
+      schoolId: string;
+      schoolName: string;
+      roleKey: RoleKey;
+    } | null;
+  }
+  ```
+  `activeRole` is `null` when the session hasn't selected one yet (e.g. a user with more
+  than one role — role switching is #16/#19).
+- **`requireAuth`** middleware rejects a request with no `req.auth` with 401
+  `UNAUTHENTICATED`. Mount it after `createSessionMiddleware()` on any route that needs a
+  signed-in user (see `modules/auth/auth.routes.ts`'s `GET /me`).
+- **Endpoints**, all under `/api/v1/auth`:
+  - `POST /login` — `{ email, password }`. Wrong password, unknown email, no password set
+    and a non-`ACTIVE` user all return the identical 401 body (`"Email or password is
+incorrect"`) in about the same time, since a real Argon2id verify always runs, against a
+    dummy hash when there's no real one. On success it rotates the session (deletes any
+    session the request already carried), sets the cookie, and returns the same body as
+    `GET /me`.
+  - `POST /logout` — deletes the current session and clears the cookie; returns 204 even
+    with no session.
+  - `GET /me` (`requireAuth`) — `{ user, activeRole, roles }`, where `roles` lists every
+    `MembershipRole` the user could switch to (an `ACTIVE` membership in an `ACTIVE`
+    school). Never returns `passwordHash` or `tokenHash`.
+- Passwords are hashed with Argon2id (`@node-rs/argon2`, OWASP-recommended defaults) in
+  `modules/auth/password.ts`.

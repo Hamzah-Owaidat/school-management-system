@@ -1,3 +1,4 @@
+import { hash as hashPassword } from "@node-rs/argon2";
 import {
   PERMISSION_DESCRIPTIONS,
   PermissionKey,
@@ -108,5 +109,76 @@ export async function seedRolesAndPermissions(prisma: PrismaClient): Promise<voi
     await prisma.rolePermission.deleteMany({
       where: { roleId, permissionId: { notIn: [...matrixPermissionIds] } },
     });
+  }
+}
+
+const DEFAULT_SEED_DEMO_PASSWORD = "demo-password-123";
+
+interface DemoUserSpec {
+  /** Synthetic address on the reserved .test domain (RFC 2606) — never a real inbox. */
+  email: string;
+  isPlatformOperator?: boolean;
+  /** Role keys to attach on one SchoolMembership at the demo school; omitted for no membership. */
+  roleKeys?: RoleKey[];
+}
+
+const DEMO_USERS: DemoUserSpec[] = [
+  { email: "operator@demo.test", isPlatformOperator: true },
+  { email: "admin@demo.test", roleKeys: [RoleKey.SCHOOL_ADMIN] },
+  { email: "teacher@demo.test", roleKeys: [RoleKey.TEACHER] },
+  { email: "accountant@demo.test", roleKeys: [RoleKey.ACCOUNTANT] },
+  { email: "student@demo.test", roleKeys: [RoleKey.STUDENT] },
+  { email: "parent@demo.test", roleKeys: [RoleKey.PARENT] },
+  { email: "admin-accountant@demo.test", roleKeys: [RoleKey.SCHOOL_ADMIN, RoleKey.ACCOUNTANT] },
+];
+
+/**
+ * Creates the demo users listed in DEMO_USERS, all at the demo school, sharing one
+ * local-only password (SEED_DEMO_PASSWORD, default "demo-password-123"). Synthetic data
+ * only — never run this against a production database. Idempotent (upsert).
+ */
+export async function seedDemoUsers(prisma: PrismaClient): Promise<void> {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("seedDemoUsers must never run with NODE_ENV=production");
+  }
+
+  const school = await prisma.school.findUniqueOrThrow({ where: { slug: "demo" } });
+  const passwordHash = await hashPassword(
+    process.env.SEED_DEMO_PASSWORD ?? DEFAULT_SEED_DEMO_PASSWORD,
+  );
+
+  for (const spec of DEMO_USERS) {
+    const user = await prisma.user.upsert({
+      where: { email: spec.email },
+      update: { passwordHash, isPlatformOperator: spec.isPlatformOperator ?? false },
+      create: {
+        email: spec.email,
+        passwordHash,
+        isPlatformOperator: spec.isPlatformOperator ?? false,
+      },
+    });
+
+    if (!spec.roleKeys || spec.roleKeys.length === 0) continue;
+
+    const membership = await prisma.schoolMembership.upsert({
+      where: { schoolId_userId: { schoolId: school.id, userId: user.id } },
+      update: {},
+      create: { schoolId: school.id, userId: user.id },
+    });
+
+    for (const roleKey of spec.roleKeys) {
+      const role = await prisma.role.findUniqueOrThrow({ where: { key: roleKey } });
+      await prisma.membershipRole.upsert({
+        where: {
+          schoolId_membershipId_roleId: {
+            schoolId: school.id,
+            membershipId: membership.id,
+            roleId: role.id,
+          },
+        },
+        update: {},
+        create: { schoolId: school.id, membershipId: membership.id, roleId: role.id },
+      });
+    }
   }
 }
