@@ -235,6 +235,7 @@ export const ROLE_MATRIX: Record<RoleKey, RoleMatrixEntry[]> = {
     { permission: PermissionKey.STUDENTS_READ, scope: PermissionScope.SCHOOL },
     { permission: PermissionKey.GUARDIANS_READ, scope: PermissionScope.SCHOOL },
     { permission: PermissionKey.ENROLLMENT_READ, scope: PermissionScope.SCHOOL },
+    { permission: PermissionKey.ANNOUNCEMENTS_READ, scope: PermissionScope.TARGETED },
     { permission: PermissionKey.FINANCE_READ, scope: PermissionScope.SCHOOL },
     { permission: PermissionKey.FINANCE_FEES_MANAGE, scope: PermissionScope.SCHOOL },
     { permission: PermissionKey.FINANCE_INVOICES_MANAGE, scope: PermissionScope.SCHOOL },
